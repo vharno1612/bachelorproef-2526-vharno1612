@@ -12,73 +12,136 @@
 % uitgewerkt (met medesturent VOORNAAM NAAM als mede-auteur).
 % 
 
+
 \section{Inleiding}%
 \label{sec:inleiding}
 
-Waarover zal je bachelorproef gaan? Introduceer het thema en zorg dat volgende zaken zeker duidelijk aanwezig zijn:
+De beschikbaarheid van vitale webapplicaties is een fundamentele vereiste voor hedendaagse organisaties. Ongeplande downtime als gevolg van serveruitval leidt niet alleen tot operationele verliezen, maar ook tot reputatieschade. Om de risico's op uitval te minimaliseren, is een High Availability (HA) cluster vandaag de dag noodzakelijk. De Recovery Time Objective (RTO) definieert de maximaal acceptabele tijd waarin een applicatie na een verstoring weer operationeel zou moeten zijn. Voor veel organisaties is een zo laag mogelijke RTO, bij voorkeur seconden, cruciaal.
+\medskip
 
-\begin{itemize}
-  \item kaderen thema
-  \item de doelgroep
-  \item de probleemstelling en (centrale) onderzoeksvraag
-  \item de onderzoeksdoelstelling
-\end{itemize}
-
-Denk er aan: een typische bachelorproef is \textit{toegepast onderzoek}, wat betekent dat je start vanuit een concrete probleemsituatie in bedrijfscontext, een \textbf{casus}. Het is belangrijk om je onderwerp goed af te bakenen: je gaat voor die \textit{ene specifieke probleemsituatie} op zoek naar een goede oplossing, op basis van de huidige kennis in het vakgebied.
-
-De doelgroep moet ook concreet en duidelijk zijn, dus geen algemene of vaag gedefinieerde groepen zoals \emph{bedrijven}, \emph{developers}, \emph{Vlamingen}, enz. Je richt je in elk geval op it-professionals, een bachelorproef is geen populariserende tekst. Eén specifiek bedrijf (die te maken hebben met een concrete probleemsituatie) is dus beter dan \emph{bedrijven} in het algemeen.
-
-Formuleer duidelijk de onderzoeksvraag! De begeleiders lezen nog steeds te veel voorstellen waarin we geen onderzoeksvraag terugvinden.
-
-Schrijf ook iets over de doelstelling. Wat zie je als het concrete eindresultaat van je onderzoek, naast de uitgeschreven scriptie? Is het een proof-of-concept, een rapport met aanbevelingen, \ldots Met welk eindresultaat kan je je bachelorproef als een succes beschouwen?
+Dit onderzoek focust op Active-Passive HA-clusters op basis van Red Hat Enterprise Linux (RHEL)-compatibele systemen. Deze architectuur, die gebruikmaakt van de open-source componenten Pacemaker (als cluster resource manager) en Corosync (als lidmaatschapsservice), wordt gekozen vanwege zijn betaalbaarheid en robuustheid \autocite{RedHat2025}. De complexiteit van deze opstelling is echter de grootste uitdaging; de kern van dit onderzoek ligt dan ook in het finetunen van deze architectuur om te kunnen voldoen aan de strikte RTO-eisen van een moderne webdienst.
+\medskip
+    
+Het onderzoek richt zich op IT-architecten, systeembeheerders en DevOps-engineers die verantwoordelijk zijn voor de implementatie en het beheer van Linux-gebaseerde infrastructuur en op zoek zijn naar betaalbare, open-source alternatieven voor commerciële HA-oplossingen. Eén specifiek doel is het ondersteunen van infrastructuurbedrijven die hun klanten een bewezen en geoptimaliseerde HA-webomgeving willen aanbieden.
+\medskip
+    
+Hoewel Pacemaker en Corosync de basis voor HA leggen, is de standaardconfiguratie vaak niet geoptimaliseerd voor minimale RTO. Het bereiken van een RTO van enkele seconden vereist diepgaande kennis van de interne werking van Pacemaker en de interactie met essentiële componenten zoals STONITH (fencing). De hoofduitdaging is om, binnen de context van een betaalbare, open-source Active-Passive HA-oplossing, te identificeren welke parameters de faaloverdracht het meest beïnvloeden en hoe deze geoptimaliseerd moeten worden om de RTO te minimaliseren.
+\medskip
+    
+De hoofdonderzoeksvraag van dit onderzoek luidt als volgt:
+\begin{quote}
+    \textit{“Hoe kan een betaalbare Active-Passive High Availability webomgeving, bestaande uit Pacemaker en Corosync op RHEL-compatibele nodes, geoptimaliseerd worden om de Recovery Time Objective (RTO) van de webapplicatie bij serveruitval te minimaliseren?”}
+\end{quote}
+    
+Het concrete eindresultaat is een functionele \textit{proof-of-concept} (PoC) van de geoptimaliseerde Active-Passive HA-cluster, samen met een gedetailleerd technisch rapport en een best-practice handleiding. De PoC moet aantonen dat de RTO van de webdienst opmerkelijk gereduceerd is tot een zo laag mogelijke niveau. Dit omvat de implementatie van een robuust en betaalbaar Power Fencing-mechanisme (STONITH), net zoals de realisatie van een set van geoptimaliseerde Pacemaker-configuratiewaarden die als blueprint kunnen dienen voor de doelgroep.
 
 %---------- Stand van zaken ---------------------------------------------------
 
 \section{Literatuurstudie}%
 \label{sec:literatuurstudie}
 
-Hier beschrijf je de \emph{state-of-the-art} rondom je gekozen onderzoeksdomein, d.w.z.\ een inleidende, doorlopende tekst over het onderzoeksdomein van je bachelorproef. Je steunt daarbij heel sterk op de professionele \emph{vakliteratuur}, en niet zozeer op populariserende teksten voor een breed publiek. Wat is de huidige stand van zaken in dit domein, en wat zijn nog eventuele open vragen (die misschien de aanleiding waren tot je onderzoeksvraag!)?
+De literatuurstudie is opgedeeld om zowel het theoretische probleemdomein (de werking van de HA-componenten en de factoren die de RTO bepalen) als het oplossingsdomein (de implementatie van STONITH en de RTO-optimalisatie\-pa\-ra\-me\-ters) te dekken.
 
-Je mag de titel van deze sectie ook aanpassen (literatuurstudie, stand van zaken, enz.). Zijn er al gelijkaardige onderzoeken gevoerd? Wat concluderen ze? Wat is het verschil met jouw onderzoek?
+\subsection{HA-Cluster Architectuur en RTO-Factoren (Probleemdomein)}
 
-Verwijs bij elke introductie van een term of bewering over het domein naar de vakliteratuur, bijvoorbeeld~\autocite{Hykes2013}! Denk zeker goed na welke werken je refereert en waarom.
+De kern van de onderzochte HA-oplossing wordt gevormd door de samenwerking tussen Pacemaker en Corosync. Corosync fungeert als de cluster lidmaatschapsservice, verantwoordelijk voor het doorgeven van statusberichten tussen de nodes via het netwerk en het detecteren van falende nodes. Pacemaker is de resource manager die, op basis van overeenkomsten met Corosync, beslist welke node welke resources (zoals een webdienst en een Virtual IP) moet beheren en initieert daarnaast ook de failover wanneer nodig \autocite{RedHatClusterWorkshop}.
+\medskip
 
-Draag zorg voor correcte literatuurverwijzingen! Een bronvermelding hoort thuis \emph{binnen} de zin waar je je op die bron baseert, dus niet er buiten! Maak meteen een verwijzing als je gebruik maakt van een bron. Doe dit dus \emph{niet} aan het einde van een lange paragraaf. Baseer nooit teveel aansluitende tekst op eenzelfde bron.
+De Recovery Time Objective (RTO) is rechtstreeks afhankelijk van de tijd die nodig is voor overeenstemming en de daaropvolgende resource-migratie. Het akkoord over de status van de webdienst en het initiëren van een failover wordt sterk beïnvloed door de timeout waarden voor het stoppen, starten en monitoren van resources, net zoals de start-interval en resource-stickiness \autocite{Clusterlabs2024}. Een te lage timeout kan leiden tot onnodige failovers; een te hoge waarde leidt tot een onacceptabel lange RTO. Deelvragen met betrekking tot het probleemdomein pakken dit aan door te vragen naar:
+\begin{itemize}
+    \item Wat zijn de specifieke functies van Pacemaker, Corosync en STONITH (fencing) binnen de gekozen HA-architectuur, en hoe werken deze drie componenten samen om een consensus over de status van de webdienst te bereiken?
+    \item Welke Pacemaker-configuratieparameters en constraints (zoals op-start-interval, resource-stickiness en timeout waarden) beïnvloeden het meest direct de snelheid van de failover en daarmee de RTO?
+    \item Welke vereisten en risico's zijn cruciaal bij het gebruik van een virtueel IP-adres voor de webdienst in een Active-Passive cluster, en hoe beheert Pacemaker de migratie van dit virtuele IP om zero downtime bij failover te benaderen?
+\end{itemize}
 
-Als je informatie over bronnen verzamelt in JabRef, zorg er dan voor dat alle nodige info aanwezig is om de bron terug te vinden (zoals uitvoerig besproken in de lessen Research Methods).
+Pacemaker beheert de migratie van het virtuele IP-adres (gerepresenteerd door de IPaddr2 resource agent) door het van de falende node te verwijderen en op de nieuwe actieve node toe te voegen. Dit moet uiteraard zo snel mogelijk en betrouwbaar gebeuren om netwerkdowntime te minimaliseren en zero downtime bij failover te benaderen.
 
-% Voor literatuurverwijzingen zijn er twee belangrijke commando's:
-% \autocite{KEY} => (Auteur, jaartal) Gebruik dit als de naam van de auteur
-%   geen onderdeel is van de zin.
-% \textcite{KEY} => Auteur (jaartal)  Gebruik dit als de auteursnaam wel een
-%   functie heeft in de zin (bv. ``Uit onderzoek door Doll & Hill (1954) bleek
-%   ...'')
+\subsection{Fencing en Optimalisatie (Oplossingsdomein)}
 
-Je mag deze sectie nog verder onderverdelen in subsecties als dit de structuur van de tekst kan verduidelijken.
+Fencing (STONITH) is cruciaal voor de data-integriteit in de cluster en het voorkomen van 'split-brain'-scenario's, waarbij twee nodes denken dat ze de controle hebben over een gedeelde resource \autocite{RedHatPolicies025}. STONITH ('Shoot The Other Node In The Head') zorgt ervoor dat een falende node van de resources wordt geïsoleerd, vaak door middel van Power Fencing. Voor een betaalbare oplossing is de implementatie van een geschikte fence\_agent, zoals fence\_ipmilan (indien IPMI beschikbaar is) of een ander betaalbaar mechanisme, essentieel \autocite{Beekhof2025, RedHat2025}.
+\medskip
+
+De minimalisatie van de RTO vereist een specifieke optimalisatiemethode. De meest directe invloed op de RTO ligt in de timeout en retry waarden voor de resource-agents. Het aanpassen van de resource-stickiness beïnvloedt de failback-beslissing en kan de uiteindelijke stabiliteit verbeteren. Literatuur toont aan dat een stapsgewijze, experimentele aanpak noodzakelijk is om de perfecte balans te vinden tussen failover-snelheid en stabiliteit van de cluster \autocite{Robert2025}.
+\medskip
+
+De deelvragen met betrekking tot het oplossingsdomein zijn:
+\begin{itemize}
+    \item Hoe kan een robuust en betaalbaar Power Fencing-mechanisme (STONITH), - cruciaal voor het garanderen van data-integriteit -  effectief geïmplementeerd en getest worden met behulp van een geschikte fence agent om 'split-brain'-scenario's betrouwbaar te voorkomen?
+    \item Wat is de gemeten gemiddelde Recovery Time Objective (RTO) van de webdienst, gesimuleerd voor ten minste drie verschillende uitvalscenario's (bijvoorbeeld een harde node-crash, een service crash, en netwerkisolatie)?
+    \item Hoe kan de initiële Pacemaker-configuratie, op basis van de theoretisch geïdentificeerde parameters, stapsgewijs geoptimaliseerd worden om de RTO tot het laagst mogelijke niveau te reduceren, en wat is de impact van deze optimalisatie op de normale performantie van de webdienst?
+\end{itemize}
 
 %---------- Methodologie ------------------------------------------------------
 \section{Methodologie}%
 \label{sec:methodologie}
 
-Hier beschrijf je hoe je van plan bent het onderzoek te voeren. Welke onderzoekstechniek ga je toepassen om elk van je onderzoeksvragen te beantwoorden? Gebruik je hiervoor literatuurstudie, interviews met belanghebbenden (bv.~voor requirements-analyse), experimenten, simulaties, vergelijkende studie, risico-analyse, PoC, \ldots?
+De methodologie hanteert een experimenteel onderzoeksontwerp met een duidelijke focus op de technische implementatie en kwantitatieve meting. De aanpak wordt onderverdeeld in drie fasen, waarbij de antwoorden op de deelvragen voor het probleem- en oplossingsdomein worden verzameld.
 
-Valt je onderwerp onder één van de typische soorten bachelorproeven die besproken zijn in de lessen Research Methods (bv.\ vergelijkende studie of risico-analyse)? Zorg er dan ook voor dat we duidelijk de verschillende stappen terug vinden die we verwachten in dit soort onderzoek!
+\begin{figure}[htbp]
+    \centering
+    \resizebox{0.5\textwidth}{!}{
+        \includegraphics{gantt.png}
+    }
+    \caption{Gantt Chart Projectplanning}
+    \label{fig:gantt_chart}
+\end{figure}
 
-Vermijd onderzoekstechnieken die geen objectieve, meetbare resultaten kunnen opleveren. Enquêtes, bijvoorbeeld, zijn voor een bachelorproef informatica meestal \textbf{niet geschikt}. De antwoorden zijn eerder meningen dan feiten en in de praktijk blijkt het ook bijzonder moeilijk om voldoende respondenten te vinden. Studenten die een enquête willen voeren, hebben meestal ook geen goede definitie van de populatie, waardoor ook niet kan aangetoond worden dat eventuele resultaten representatief zijn.
+\subsection{Fase 1: Basissysteem en Literatuuronderzoek}
+Deze eerste fase legt de basis voor het onderzoek en beantwoordt de theoretische deelvragen over het probleemdomein.
+\medskip
 
-Uit dit onderdeel moet duidelijk naar voor komen dat je bachelorproef ook technisch voldoen\-de diepgang zal bevatten. Het zou niet kloppen als een bachelorproef informatica ook door bv.\ een student marketing zou kunnen uitgevoerd worden.
+We starten met een diepgaand literatuuronderzoek. Dit omvat een systematische analyse van de documentatie van Pacemaker, Corosync en STONITH. Het doel is om niet alleen de exacte werking van deze tools te ontdekken, maar vooral om de invloed van configuratieparameters op de failover time in kaart te brengen. Dit levert ons een essentieel rapport op over welke RTO-parameters naar verwachting de grootste invloed zullen hebben op de hersteltijd.
+\medskip
 
-Je beschrijft ook al welke tools (hardware, software, diensten, \ldots) je denkt hiervoor te gebruiken of te ontwikkelen.
+Vervolgens implementeren we de basis Proof-of-Concept (PoC). De Active-Passive cluster wordt opgezet op twee RHEL-compatibele virtuele machines (VMs). Deze machines worden uitgerust met Pacemaker en Corosync en een standaard webdienst (bijvoorbeeld Apache of NGINX) wordt geconfigureerd als een gedeelde clusterresource, inclusief een virtueel IP-adres. De initiële configuratie volgt hierbij de aanbevolen, nog niet geoptimaliseerde, 'out-of-the-box' instellingen.
 
-Probeer ook een tijdschatting te maken. Hoe lang zal je met elke fase van je onderzoek bezig zijn en wat zijn de concrete \emph{deliverables} in elke fase?
+\subsection{Fase 2: Implementatie en Validatie van STONITH}
+Het Power Fencing-mechanisme is cruciaal; zonder een waterdichte STONITH-oplossing is betrouwbare HA onmogelijk.
+\medskip
+
+We richten ons op een betaalbare STONITH-implementatie door een geschikte fence\_agent te selecteren. In onze virtuele opstelling gebruiken we een agent die geschikt is voor het virtualisatieplatform, of anders een nauwkeurige simulatie.
+\medskip
+
+Vervolgens testen we dit grondig. Door een 'split-brain'-situatie na te bootsen, valideren we de betrouwbaarheid van de Fencing. Dit wordt vastgelegd in een helder Fencing Validatie Rapport.
+
+\subsection{Fase 3: RTO-Meting en Iteratieve Optimalisatie}
+Dit is het hart van het onderzoek: het meten en optimaliseren van de hersteltijd.
+
+Eerst bepalen we de initiële RTO van onze basisconfiguratie. We meten de downtime voor minstens drie cruciale scenario's: een harde servercrash, het uitvallen van de webdienst zelf, en netwerkisolatie. De RTO meten we vanaf het moment dat de uitval gedetecteerd wordt tot het moment dat de webdienst op de overgenomen node weer succesvol verkeer aanneemt. Dit geeft ons de nulmeting.
+
+Vervolgens start de iteratieve optimalisatie. Op basis van onze theoretische bevindingen uit eerdere fases, passen we de meest invloedrijke Pacemaker-configuratieparameters stapsgewijs aan. Denk hierbij aan de timeout-waarden, het start-interval en de resource-stickiness. Na elke aanpassing herhalen we de RTO-metingen om direct te zien wat het effect is.
+
+Hoewel de Proof-of-Concept primair op VirtualBox VM’s wordt uitgevoerd, kijken we naar de optie om de uiteindelijke configuratie te valideren op de fysieke infrastructuur van het stagebedrijf. Dit zou de metingen realistischer maken, maar voorlopig blijft de focus op de VM-omgeving.
+
+Tot slot voeren we een impactanalyse uit. We meten de performantie van de webdienst (bijvoorbeeld latency of CPU-gebruik) om te garanderen dat de snellere RTO geen ongewenste negatieve bijeffecten heeft op de normale werking.
+
 
 %---------- Verwachte resultaten ----------------------------------------------
 \section{Verwacht resultaat, conclusie}%
 \label{sec:verwachte_resultaten}
 
-Hier beschrijf je welke resultaten je verwacht. Als je metingen en simulaties uitvoert, kan je hier al mock-ups maken van de grafieken samen met de verwachte conclusies. Benoem zeker al je assen en de onderdelen van de grafiek die je gaat gebruiken. Dit zorgt ervoor dat je concreet weet welk soort data je moet verzamelen en hoe je die moet meten.
+De uitkomsten van dit onderzoek geven antwoord op de opgestelde deelvragen en vormen de kern van de bachelorproef. Het belangrijkste resultaat is een zorgvuldig geteste set van configuratieparameters, waarbij de nadruk ligt op de finetuning van timeout-waarden en resource-stickiness. De verwachting is dat deze optimalisaties de $RTO$ met minstens 50\% kunnen reduceren in vergelijking met de standaardinstellingen van een RHEL-cluster. De streefwaarden voor de verschillende uitvalscenario's worden overzichtelijk samengevat in Tabel~\ref{tab:verwachte_rto}.
 
-Wat heeft de doelgroep van je onderzoek aan het resultaat? Op welke manier zorgt jouw bachelorproef voor een meerwaarde?
+\begin{table}[h]
+    \centering
+    \caption{Verwachte RTO-metingen bij geoptimaliseerde configuratie (Mock-up)}
+    \label{tab:verwachte_rto}
+    \resizebox{\columnwidth}{!}{%
+        \begin{tabular}{|l|c|c|c|}
+            \hline
+            \textbf{Uitvalscenario} & \textbf{Baseline RTO (sec)} & \textbf{Geoptimaliseerd (sec)} & \textbf{Reductie (\%)} \\
+            \hline
+            Harde Node Crash        & $> 15$                      & $< 8$                          & $> 50\%$               \\
+            Service Crash           & $> 10$                      & $< 5$                          & $> 50\%$               \\
+            Netwerkisolatie         & $> 20$                      & $< 10$                         & $> 50\%$               \\
+            \hline
+        \end{tabular}%
+    }
+\end{table}
 
-Hier beschrijf je wat je verwacht uit je onderzoek, met de motivatie waarom. Het is \textbf{niet} erg indien uit je onderzoek andere resultaten en conclusies vloeien dan dat je hier beschrijft: het is dan juist interessant om te onderzoeken waarom jouw hypothesen niet overeenkomen met de resultaten.
+Naast de reductie van de hersteltijd, wordt een STONITH-mechanisme gerealiseerd dat zowel robuust als kosteneffectief is. In de testfase zal worden aangetoond dat deze methode 'split-brain'-situaties betrouwbaar uitsluit, wat belangrijk is voor de integriteit van de webapplicatie. Door middel van een kwantitatieve analyse worden de exacte hersteltijden bij verschillende storingsscenario's in kaart gebracht, wat het bewijs levert voor de effectiviteit van de gekozen instellingen.
+\medskip
+
+De uiteindelijke conclusie van dit werk zal aantonen dat een zeer hoge beschikbaarheid niet afhankelijk hoeft te zijn van dure commerciële software. Door een gedisciplineerde configuratie van Pacemaker en een doordachte STONITH-implementatie wordt de haalbaarheid van een snelle, betaalbare Active-Passive HA-omgeving bewezen. De fundamentele meerwaarde voor IT-professionals en de infrastructuursector zit in de praktische blueprint die dit onderzoek oplevert. Dit onderzoek dient als een blueprint om bedrijfskritieke diensten betrouwbaarder te maken en de continuïteit te waarborgen met open-source middelen.
+
 

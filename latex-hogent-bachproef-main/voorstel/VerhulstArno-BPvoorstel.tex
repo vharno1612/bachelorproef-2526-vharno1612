@@ -7,6 +7,7 @@
 \documentclass{hogent-article}
 
 % Invoegen bibliografiebestand
+\usepackage[backend=biber]{biblatex}
 \addbibresource{voorstel.bib}
 
 % Informatie over de opleiding, het vak en soort opdracht
@@ -18,6 +19,7 @@
 \title{Optimalisatie van de Recovery Time Objective (RTO) in Active-Passive High Availability Clusters met Pacemaker en Corosync op RHEL-Nodes.}
 
 \author{Arno Verhulst}
+\projectrepo{https://github.com/vharno1612/bachelorproef-2526-vharno1612.git}
 \email{arno.verhulst@student.hogent.be}
 
 
@@ -41,7 +43,7 @@
 \begin{document}
 
 \begin{abstract}
-  Hier schrijf je de samenvatting van je voorstel, als een doorlopende tekst van één paragraaf. Let op: dit is geen inleiding, maar een samenvattende tekst van heel je voorstel met inleiding (voorstelling, kaderen thema), probleemstelling en centrale onderzoeksvraag, onderzoeksdoelstelling (wat zie je als het concrete resultaat van je bachelorproef?), voorgestelde methodologie, verwachte resultaten en meerwaarde van dit onderzoek (wat heeft de doelgroep aan het resultaat?).
+    Dit voorstel beschrijft een toegepast onderzoek gericht op de minimalisatie van de Recovery Time Objective (RTO) binnen een betaalbare Active-Passive High Availability (HA) webomgeving, gebouwd op Red Hat Enterprise Linux (RHEL)-compatibele nodes, gebruikmakend van de clusteringstechnologieën Pacemaker en Corosync. De centrale onderzoeksvraag luidt: \textit{“Hoe kan een betaalbare Active-Passive High Availability webomgeving, bestaande uit Pacemaker en Corosync op RHEL-compatibele nodes, geoptimaliseerd worden om de Recovery Time Objective (RTO) van de webapplicatie bij serveruitval te minimaliseren?”}. Het concrete doel van dit onderzoek is de ontwikkeling van een geoptimaliseerde Pacemaker-configuratie en een robuuste Power Fencing-implementatie, resulterend in een functionele proof-of-concept met een geminimaliseerde RTO, zodat de belangrijkste systemen van een bedrijf online blijven en de dienstverlening niet stilvalt. Door middel van een diepgaande literatuurstudie over de werking van Pacemaker, Corosync en STONITH, gekoppeld aan een iteratieve, experimentele methodologie (uitgevoerd in een virtuele omgeving, waarbij er de optie is om de oplossing later te valideren op de fysieke infrastructuur van het stagebedrijf), zullen de meest effectieve configuratieparameters worden geïdentificeerd en geoptimaliseerd. De verwachte resultaten omvatten een gevalideerde best-practice handleiding en een set optimale configuratiewaarden die de RTO opmerkelijk reduceren, wat een meerwaarde biedt voor IT-professionals die betaalbare, betrouwbare HA-oplossingen implementeren.
 \end{abstract}
 
 \tableofcontents

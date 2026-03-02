@@ -26,5 +26,45 @@
 %% Maak voor elke fase (behalve het literatuuronderzoek) een NIEUW HOOFDSTUK aan
 %% en geef het een gepaste titel.
 
-\lipsum[21-25]
+\section{Methodologie}%
+\label{sec:methodologie}
+
+De methodologie hanteert een experimenteel onderzoeksontwerp met een duidelijke focus op de technische implementatie en kwantitatieve meting. De aanpak wordt onderverdeeld in drie fasen, waarbij de antwoorden op de deelvragen voor het probleem- en oplossingsdomein worden verzameld.
+
+\subsection{Fase 1: Basissysteem en Literatuuronderzoek}
+Deze eerste fase legt de basis voor het onderzoek en beantwoordt de theoretische deelvragen over het probleemdomein.
+\medskip
+
+We starten met een diepgaand literatuuronderzoek. Hierbij wordt de officiële documentatie en relevante vakliteratuur over Pacemaker, Corosync en STONITH uitgebreid bestudeerd. Het doel is om niet alleen de exacte werking van deze tools te ontdekken, maar vooral om de invloed van configuratieparameters op de failover time in kaart te brengen. Dit levert ons een essentieel rapport op over welke RTO-parameters naar verwachting de grootste invloed zullen hebben op de hersteltijd.
+\medskip
+
+Vervolgens implementeren we de basis Proof-of-Concept (PoC). De Active-Passive cluster wordt opgezet op twee virtuele machines draaiend op Red Hat Enterprise Linux 9. Deze machines worden uitgerust met Pacemaker en Corosync en een standaard webdienst (bijvoorbeeld Apache of NGINX) wordt geconfigureerd als een gedeelde clusterresource, inclusief een virtueel IP-adres. De initiële configuratie volgt hierbij de aanbevolen, nog niet geoptimaliseerde, 'out-of-the-box' instellingen.
+
+\subsection{Fase 2: Implementatie en Validatie van STONITH}
+Het Power Fencing-mechanisme is cruciaal; zonder een STONITH-oplossing is betrouwbare HA onmogelijk.
+\medskip
+
+We richten ons op een betaalbare STONITH-implementatie door een geschikte fence\_agent te selecteren. We maken gebruik van de fence\_ipmilan agent of de API-gebaseerde agent van het aanwezige virtualisatieplatform.
+\medskip
+
+Vervolgens testen we dit grondig. Door een 'split-brain'-situatie na te bootsen, valideren we de betrouwbaarheid van de Fencing. Dit wordt vastgelegd in een helder Fencing Validatie Rapport.
+
+\subsection{Fase 3: RTO-Meting en Iteratieve Optimalisatie}
+Dit is het hart van het onderzoek: het meten en optimaliseren van de hersteltijd op de infrastructuur van het stagebedrijf oXya.
+\medskip
+
+De PoC-omgeving is opgezet op een dedicated cluster bij oXya, waarbij twee virtuele nodes draaien op Red Hat Enterprise Linux 9. Elke node beschikt over voldoende RAM en vCPUs om een realistische belasting te simuleren. Voor Power Fencing wordt gebruikgemaakt van een agent die communiceert met de fysieke beheerkaarten (zoals IPMI) van de onderliggende hosts of de API van het virtualisatieplatform.
+\medskip
+
+Om de RTO exact en objectief vast te leggen, wordt gebruikgemaakt van een externe monitoring- en logging-node. De volgende instrumenten worden ingezet:
+
+\begin{itemize}
+    \item HTTP Probing (Availability): Een script op basis van cURL of een tool zoals Uptime Kuma voert elke 500ms een request uit naar het Virtueel IP. De tijd tussen het eerste gefaalde request en het eerste succesvolle herstel na de failover definieert de bruto RTO.
+    \item Pacemaker Logging \& Crm\_mon: De interne logs van de cluster worden geanalyseerd met journalctl om de exacte tijdstippen van failure detection, fencing execution en resource start tot op de milliseconde te synchroniseren.
+    \item Wireshark/Tcpdump: Voor de analyse van de netwerkmigratie wordt netwerkverkeer onderschept om te meten hoe lang de ARP-verversing duurt voordat de switch het verkeer naar de nieuwe node stuurt.
+\end{itemize}
+
+Eerst wordt een nulmeting uitgevoerd op de basisconfiguratie voor drie scenario's: een harde servercrash, een service-crash en netwerkisolatie. Vervolgens start de iteratieve optimalisatie waarbij parameters zoals timeout-waarden, het start-interval en de resource-stickiness stapsgewijs worden aangepast. Na elke wijziging worden de metingen herhaald om de impact op de RTO en de systeemstabiliteit te valideren.
+
+%\lipsum[21-25]
 

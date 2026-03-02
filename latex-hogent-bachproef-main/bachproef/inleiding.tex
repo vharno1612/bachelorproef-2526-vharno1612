@@ -5,46 +5,62 @@
 \chapter{\IfLanguageName{dutch}{Inleiding}{Introduction}}%
 \label{ch:inleiding}
 
-De inleiding moet de lezer net genoeg informatie verschaffen om het onderwerp te begrijpen en in te zien waarom de onderzoeksvraag de moeite waard is om te onderzoeken. In de inleiding ga je literatuurverwijzingen beperken, zodat de tekst vlot leesbaar blijft. Je kan de inleiding verder onderverdelen in secties als dit de tekst verduidelijkt. Zaken die aan bod kunnen komen in de inleiding~\autocite{Pollefliet2011}:
+In de huidige gedigitaliseerde economie is de constante beschikbaarheid van vitale webapplicaties een fundamentele vereiste voor de continuïteit van organisaties. Bedrijven vertrouwen tegenwoordig volledig op hun IT-infrastructuur voor hun dagelijkse werking, communicatie en dienstverlening. Zelfs een verstoring van slechts enkele minuten heeft merkbare gevolgen binnen de bedrijfsvoering. Bovendien heeft downtime een domino-effect op de gehele organisatie, ongeacht of er gegevensverlies, datamutaties of beveiligingsincidenten plaatsvinden \autocite{ITIC2024}.
+\medskip
 
-\begin{itemize}
-  \item context, achtergrond
-  \item afbakenen van het onderwerp
-  \item verantwoording van het onderwerp, methodologie
-  \item probleemstelling
-  \item onderzoeksdoelstelling
-  \item onderzoeksvraag
-  \item \ldots
-\end{itemize}
+Ongeplande downtime als gevolg van serveruitval leidt niet alleen tot grootschalige verliezen, maar tast ook de reputatie van een organisatie aan. Volgens recente rapportages van \textcite{ITIC2024} kunnen de kosten van downtime voor grote ondernemingen oplopen tot ver boven de \$300.000 per uur, waarbij factoren zoals verloren productiviteit en juridische claims de rekening verder doen stijgen. Naast deze directe financiële schade wijst onderzoek van \textcite{Kollective2025} op zogenoemde ‘verborgen kosten’, zoals een dalende werknemersmoraal en verlies van klantvertrouwen. Deze effecten zijn vaak moeilijker te kwantificeren, maar kunnen op de lange termijn minstens zo schadelijk zijn.
+\medskip
+
+Om deze risico's te beperken, is de implementatie van een High Availability (HA) cluster essentieel. HA verwijst naar het ontwerp van systemen die consistent beschikbaar blijven door de toepassing van drie kernprincipes: redundantie, veerkracht en failover. In dit onderzoek wordt specifiek gekozen voor een Active-Passive architectuur. De voordelen van dit model zijn de eenvoud in beheer en de kosteneffectiviteit voor applicaties met een gemiddeld verkeersvolume \autocite{Luca2024}.
+\medskip
+
+Voor de realisatie van de HA-cluster wordt gebruikgemaakt van open-source componenten op Red Hat Enterprise Linux (RHEL)-compatibele nodes. Corosync fungeert hierbij als de communicatielaag, terwijl Pacemaker de resource manager is. Onderzoek toont aan dat een omgeving beheerd door Pacemaker de downtime tot wel 45\% kan reduceren in vergelijking met niet-geoptimaliseerde systemen. Door de integratie van Pacemaker wordt de systeemveerkracht aanzienlijk verbeterd en blijft de verwerkingscapaciteit stabiel, zelfs tijdens zware werklasten \autocite{Mani2022}.
 
 \section{\IfLanguageName{dutch}{Probleemstelling}{Problem Statement}}%
 \label{sec:probleemstelling}
 
-Uit je probleemstelling moet duidelijk zijn dat je onderzoek een meerwaarde heeft voor een concrete doelgroep. De doelgroep moet goed gedefinieerd en afgelijnd zijn. Doelgroepen als ``bedrijven,'' ``KMO's'', systeembeheerders, enz.~zijn nog te vaag. Als je een lijstje kan maken van de personen/organisaties die een meerwaarde zullen vinden in deze bachelorproef (dit is eigenlijk je steekproefkader), dan is dat een indicatie dat de doelgroep goed gedefinieerd is. Dit kan een enkel bedrijf zijn of zelfs één persoon (je co-promotor/opdrachtgever).
+Hoewel de genoemde tools een robuuste basis leggen, is de standaardconfiguratie vaak niet toereikend om te voldoen aan strikte eisen voor de Recovery Time Objective (RTO). De RTO definieert de maximaal acceptabele tijd waarin een applicatie na een storing weer operationeel moet zijn. Voor veel moderne diensten is een hersteltijd van enkele seconden cruciaal. De grootste uitdaging ligt in het nauwkeurig afstellen van parameters zoals timeoutwaarden, resource stickiness en fencingmechanismen zoals STONITH. Zonder een effectief fencingmechanisme ontstaat het risico op 'split-brain'-scenario's, waarbij de data-integriteit niet langer gegarandeerd kan worden.
+\medskip
+
+Het onderzoek richt zich op IT-architecten, systeembeheerders en DevOps-engineers die verantwoordelijk zijn voor de implementatie en het beheer van Linux-gebaseerde infrastructuur en op zoek zijn naar betaalbare, open-source alternatieven voor commerciële HA-oplossingen.
 
 \section{\IfLanguageName{dutch}{Onderzoeksvraag}{Research question}}%
 \label{sec:onderzoeksvraag}
 
-Wees zo concreet mogelijk bij het formuleren van je onderzoeksvraag. Een onderzoeksvraag is trouwens iets waar nog niemand op dit moment een antwoord heeft (voor zover je kan nagaan). Het opzoeken van bestaande informatie (bv. ``welke tools bestaan er voor deze toepassing?'') is dus geen onderzoeksvraag. Je kan de onderzoeksvraag verder specifiëren in deelvragen. Bv.~als je onderzoek gaat over performantiemetingen, dan 
+De centrale onderzoeksvraag van deze bachelorproef luidt:
+\begin{quote}
+    \textit{“Hoe kan een betaalbare Active-Passive High Availability webomgeving, bestaande uit Pacemaker en Corosync op RHEL-compatibele nodes, geoptimaliseerd worden om de Recovery Time Objective (RTO) van de webapplicatie bij serveruitval te minimaliseren?”}
+\end{quote}
+\medskip 
+
+Om een onderbouwd antwoord op de centrale onderzoeksvraag te formuleren, wordt het onderzoek opgesplitst in een reeks gerichte deelvragen. In de eerste plaats wordt het probleemdomein in kaart gebracht om de theoretische en technische aspecten van de cluster-architectuur te doorgronden:
+\begin{itemize}
+    \item Wat zijn de specifieke functies van Pacemaker, Corosync en STONITH (fencing) binnen de gekozen HA-architectuur, en hoe werken deze drie componenten samen om een consensus over de status van de webdienst te bereiken?
+    \item Welke Pacemaker-configuratieparameters en constraints (zoals op-start-interval, resource-stickiness en timeout waarden) beïnvloeden het meest direct de snelheid van de failover en daarmee de RTO?
+    \item Welke vereisten en risico’s zijn cruciaal bij het gebruik van een virtueel IP-adres voor de webdienst in een Active-Passive cluster, en hoe beheert Pacemaker de migratie van dit virtuele IP om zero downtime bij failover te benaderen?
+\end{itemize}
+\medskip 
+
+Voortbouwend op deze technische basis verschuift de focus naar het oplossingsdomein, waarbij de nadruk ligt op de effectieve implementatie en de kwantitatieve optimalisatie van de hersteltijd:
+\begin{itemize}
+    \item Hoe kan een robuust en betaalbaar Power Fencing-mechanisme (STONITH) - cruciaal voor het garanderen van data-integriteit - effectief geïmplementeerd en getest worden met behulp van een geschikte fence agent om ’split-brain’-scenario’s betrouwbaar te voorkomen?
+    \item Wat is de gemeten gemiddelde Recovery Time Objective (RTO) van de webdienst, gesimuleerd voor ten minste drie verschillende uitvalscenario’s (bijvoorbeeld een harde nodecrash, een service crash, en netwerkisolatie)?
+    \item Hoe kan de initiële Pacemaker-configuratie, op basis van de theoretisch geïdentificeerde parameters, stapsgewijs geoptimaliseerd worden om de RTO tot het laagst mogelijke niveau te reduceren, en wat is de impact van deze optimalisatie op de normale performantie van de webdienst?
+\end{itemize}
 
 \section{\IfLanguageName{dutch}{Onderzoeksdoelstelling}{Research objective}}%
 \label{sec:onderzoeksdoelstelling}
 
-Wat is het beoogde resultaat van je bachelorproef? Wat zijn de criteria voor succes? Beschrijf die zo concreet mogelijk. Gaat het bv.\ om een proof-of-concept, een prototype, een verslag met aanbevelingen, een vergelijkende studie, enz.
+Dit onderzoek richt zich op het identificeren en optimaliseren van de configuratie-parameters binnen een Active-Passive HA-webomgeving om de RTO bij serveruitval te minimaliseren. Het uiteindelijke resultaat is een functionele Proof-of-Concept (PoC) en een best-practice handleiding die als blauwdruk dient voor de doelgroep.
 
 \section{\IfLanguageName{dutch}{Opzet van deze bachelorproef}{Structure of this bachelor thesis}}%
 \label{sec:opzet-bachelorproef}
 
-% Het is gebruikelijk aan het einde van de inleiding een overzicht te
-% geven van de opbouw van de rest van de tekst. Deze sectie bevat al een aanzet
-% die je kan aanvullen/aanpassen in functie van je eigen tekst.
-
 De rest van deze bachelorproef is als volgt opgebouwd:
+\medskip 
 
-In Hoofdstuk~\ref{ch:stand-van-zaken} wordt een overzicht gegeven van de stand van zaken binnen het onderzoeksdomein, op basis van een literatuurstudie.
+In Hoofdstuk~\ref{ch:stand-van-zaken} worden de theoretische deelvragen uit het probleemdomein behandeld en wordt de technologische basis van de gebruikte tools dieper geanalyseerd. 
 
-In Hoofdstuk~\ref{ch:methodologie} wordt de methodologie toegelicht en worden de gebruikte onderzoekstechnieken besproken om een antwoord te kunnen formuleren op de onderzoeksvragen.
+In Hoofdstuk~\ref{ch:methodologie} wordt de opzet van de testomgeving en de wijze waarop de RTO-metingen worden uitgevoerd toegelicht. 
 
-% TODO: Vul hier aan voor je eigen hoofstukken, één of twee zinnen per hoofdstuk
-
-In Hoofdstuk~\ref{ch:conclusie}, tenslotte, wordt de conclusie gegeven en een antwoord geformuleerd op de onderzoeksvragen. Daarbij wordt ook een aanzet gegeven voor toekomstig onderzoek binnen dit domein.
+In Hoofdstuk~\ref{ch:conclusie} wordt een finaal antwoord geformuleerd op de onderzoeksvraag en worden aanbevelingen gedaan voor de praktijk.

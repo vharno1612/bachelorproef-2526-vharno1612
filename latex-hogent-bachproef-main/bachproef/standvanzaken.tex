@@ -4,48 +4,165 @@
 % Tip: Begin elk hoofdstuk met een paragraaf inleiding die beschrijft hoe
 % dit hoofdstuk past binnen het geheel van de bachelorproef. Geef in het
 % bijzonder aan wat de link is met het vorige en volgende hoofdstuk.
-
 % Pas na deze inleidende paragraaf komt de eerste sectiehoofding.
 
-Dit hoofdstuk bevat je literatuurstudie. De inhoud gaat verder op de inleiding, maar zal het onderwerp van de bachelorproef *diepgaand* uitspitten. De bedoeling is dat de lezer na lezing van dit hoofdstuk helemaal op de hoogte is van de huidige stand van zaken (state-of-the-art) in het onderzoeksdomein. Iemand die niet vertrouwd is met het onderwerp, weet nu voldoende om de rest van het verhaal te kunnen volgen, zonder dat die er nog andere informatie moet over opzoeken \autocite{Pollefliet2011}.
+In dit hoofdstuk wordt de theoretische en technologische basis van het onderzoek gedetailleerd uitgewerkt. Waar de inleiding de zakelijke noodzaak en de algemene context van een lage hersteltijd (RTO) schetste, verschuift de focus hier naar de onderliggende mechanismen van de High Availability-stack binnen een RHEL-omgeving. Er wordt achtereenvolgens stilgestaan bij de fundamentele clusterprincipes, de specifieke interactie tussen Corosync en Pacemaker, en de kritieke rol van fencing en quorum voor de data-integriteit. Deze diepgaande analyse van de huidige stand van zaken vormt het noodzakelijke fundament voor de praktische testscenario's en de stapsgewijze parameter-optimalisaties die in hoofdstuk~\ref{ch:methodologie} centraal staan.
 
-Je verwijst bij elke bewering die je doet, vakterm die je introduceert, enz.\ naar je bronnen. In \LaTeX{} kan dat met het commando \texttt{$\backslash${textcite\{\}}} of \texttt{$\backslash${autocite\{\}}}. Als argument van het commando geef je de ``sleutel'' van een ``record'' in een bibliografische databank in het Bib\LaTeX{}-formaat (een tekstbestand). Als je expliciet naar de auteur verwijst in de zin (narratieve referentie), gebruik je \texttt{$\backslash${}textcite\{\}}. Soms is de auteursnaam niet expliciet een onderdeel van de zin, dan gebruik je \texttt{$\backslash${}autocite\{\}} (referentie tussen haakjes). Dit gebruik je bv.~bij een citaat, of om in het bijschrift van een overgenomen afbeelding, broncode, tabel, enz. te verwijzen naar de bron. In de volgende paragraaf een voorbeeld van elk.
+\section{Concepten van High Availability en Business Continuity}
+In de moderne IT-architectuur is de tolerantie voor downtime nagenoeg nihil. High Availability (HA) vormt de ruggengraat van strategieën voor bedrijfscontinuïteit, waarbij het doel is om diensten operationeel te houden ondanks het onvermijdelijke falen van hardware- of softwarecomponenten.
 
-\textcite{Knuth1998} schreef een van de standaardwerken over sorteer- en zoekalgoritmen. Experten zijn het erover eens dat cloud computing een interessante opportuniteit vormen, zowel voor gebruikers als voor dienstverleners op vlak van informatietechnologie~\autocite{Creeger2009}.
+\subsection{Definitie en Kernprincipes van High Availability}
+High Availability verwijst naar het ontwerp en de implementatie van IT-systemen die consistent operationeel blijven met een minimale hoeveelheid downtime. Waar een standaard systeem kwetsbaar is voor een Single Point of Failure (SPOF), elimineert een HA-omgeving deze risico's door middel van drie fundamentele principes \autocite{Luca2024}:
 
-Let er ook op: het \texttt{cite}-commando voor de punt, dus binnen de zin. Je verwijst meteen naar een bron in de eerste zin die erop gebaseerd is, dus niet pas op het einde van een paragraaf.
+\begin{itemize}
+    \item Redundantie: Het beschikbaar hebben van meerdere kopieën van kritieke componenten om de werking te garanderen bij uitval.
+    \item Veerkracht: Het vermogen van een systeem om fouten proactief te detecteren en zelfherstellende acties te ondernemen.
+    \item Failover: Het proces waarbij de werklast naadloos wordt overgedragen van een falend primair systeem naar een back-upsysteem, waardoor de continuïteit voor de eindgebruiker gewaarborgd blijft.
+\end{itemize}
 
-\begin{figure}
-  \centering
-  \includegraphics[width=0.8\textwidth]{grail.jpg}
-  \caption[Voorbeeld figuur.]{\label{fig:grail}Voorbeeld van invoegen van een figuur. Zorg altijd voor een uitgebreid bijschrift dat de figuur volledig beschrijft zonder in de tekst te moeten gaan zoeken. Vergeet ook je bronvermelding niet!}
+\subsection{High Availability Clusters}
+Een HA-cluster, ook wel een failover cluster genoemd, is een groep samenwerkende servers (nodes) die naar de buitenwereld toe fungeren als één enkel, uniform systeem. Deze nodes delen vaak dezelfde missie en kunnen dezelfde werklasten draaien als het primaire systeem dat zij ondersteunen.
+\medskip 
+
+Om de status van de cluster te bewaken, wordt gebruikgemaakt van een 'heartbeat'-mechanisme. Dit programma verstuurt datapakketten tussen de machines om te bevestigen dat elke node correct functioneert. Wanneer een heartbeat wegvalt, initieert de cluster softwarematig de failover-procedure om downtime te elimineren \autocite{Cisco}.
+
+\subsection{HA-Architecturen: Active-Passive versus Active-Active}
+Binnen de clustering-technologie zijn er twee dominante architecturen, elk met hun eigen voor- en nadelen.
+
+\subsubsection{Active-Passive Architectuur}
+In dit onderzoek ligt de focus op de Active-Passive opstelling. Hierbij is op elk gegeven moment slechts één instantie (de actieve node) verantwoordelijk voor het verwerken van het verkeer. De tweede instantie (de passieve node) staat op stand-by en blijft volledig gesynchroniseerd, maar verwerkt geen verzoeken tenzij de actieve node faalt. Deze opstelling is vaak eenvoudiger in beheer en configuratie, en zeer kosteneffectief voor applicaties met een gemiddeld verkeersvolume \autocite{Luca2024}.
+
+\subsubsection{Active-Active Architectuur}
+In een Active-Active opstelling zijn alle instances gelijktijdig actief en verdelen ze de werklast via load balancing. Dit resulteert in een maximale benutting van alle systeembronnen, maar is vanzelfsprekend aanzienlijk complexer om te configureren en gaat gepaard met hogere operationele kosten \autocite{Luca2024}.
+\medskip  
+
+Vanwege de doelstelling om een betaalbare oplossing te bieden voor KMO's en infrastructuurbedrijven, is de Active-Passive architectuur in dit onderzoek de meest logische keuze.
+
+\subsection{Business Continuity: RTO versus RPO}
+Bij het opstellen van een Disaster Recovery-plan zijn twee statistieken cruciaal om het succes van een HA-implementatie te meten: het Recovery Point Objective (RPO) en het Recovery Time Objective (RTO) \autocite{SIOS}.
+
+\begin{itemize}
+    \item RPO: Dit heeft betrekking op dataverlies. Het definieert de maximale hoeveelheid tijd (data) die verloren mag gaan bij een incident, gemeten vanaf de laatste back-up of synchronisatie.
+    \item RTO: Dit is de kernfocus van dit onderzoek. Het definieert de maximaal acceptabele tijd waarin een applicatie na een storing weer volledig operationeel moet zijn.
+\end{itemize}
+
+Voor moderne organisaties is een lage RTO, bij voorkeur in de orde van enkele seconden, essentieel om reputatieschade en financiële verliezen (die kunnen oplopen tot \$300.000 per uur) te voorkomen \autocite{ITIC2024}.
+
+\section{Corosync: De communicatielaag}
+Corosync vormt de fundamentele communicatielaag van de High Availability-cluster en is een onmisbare daemon voor het functioneren van de gehele stack. Het fungeert als een lidmaatschapsservice die verantwoordelijk is voor het doorgeven van statusberichten tussen de verschillende nodes via het netwerk. Door middel van een heartbeat-mechanisme bewaakt Corosync continu de aanwezigheid van elke node; zodra een node stopt met reageren, wordt dit onmiddellijk gedetecteerd en wordt het lidmaatschap van de cluster bijgewerkt zodat alle overgebleven nodes een eenduidig beeld hebben van de actuele status \autocite{Cubepath2026, Oracle}. Naast deze statusbewaking biedt Corosync ook messaging-mogelijkheden voor applicaties die over meerdere nodes heen moeten coördineren en statusinformatie moeten uitwisselen \autocite{RedHat}. 
+\medskip
+
+Een essentieel technisch kenmerk van de moderne Corosync-implementatie is het gebruik van de kronosnet-bibliotheek voor het netwerktransport. Kronosnet stelt de cluster in staat om gebruik te maken van meerdere redundante netwerkverbindingen tussen de nodes. Indien een specifiek netwerkpad faalt, zorgt deze bibliotheek voor een automatische failover naar een beschikbare link, wat de betrouwbaarheid van de onderlinge communicatie aanzienlijk verhoogt \autocite{RedHat}. Een optimale configuratie van de Corosync-parameters is dan ook noodzakelijk om de vooropgestelde Recovery Time Objective (RTO) van enkele seconden te kunnen garanderen.
+
+\section{Pacemaker: De Cluster Resource Manager}
+Pacemaker fungeert als het centrale brein van de High Availability-cluster en wordt omschreven als een geavanceerde, schaalbare cluster resource manager. Waar Corosync verantwoordelijk is voor de onderlinge communicatie, is het de taak van Pacemaker om de beschikbaarheid van de services, ook wel resources genoemd, te garanderen door deze over de beschikbare nodes te verdelen en continu te bewaken \autocite{ClusterLabs}.
+\medskip
+
+De kern van de Pacemaker-architectuur wordt gevormd door de Cluster Information Base (CIB), een XML-gebaseerde database die de volledige configuratie en de actuele status van alle resources en nodes bevat. Om de consistentie binnen de cluster te waarborgen, wordt één node aangewezen als de Designated Coordinator (DC). Deze DC is verantwoordelijk voor het opslaan en distribueren van statuswijzigingen en configuratie-updates via de CIB naar alle andere nodes in de cluster \autocite{ClusterLabs, RedHat}.
+\medskip
+
+Het daadwerkelijke beheer van deze resources wordt uitgevoerd door de Cluster Resource Management Daemon (CRMd). Op elke node in de cluster draait een CRMd-instantie die instructies ontvangt van de DC om resources te starten, te stoppen of te verplaatsen. De CRMd fungeert als de motor die de beslissingen van de cluster logisch uitvoert en de status van lokale resources terugkoppelt naar de centrale CIB \autocite{ClusterLabs2}.
+\medskip
+
+Om te kunnen communiceren met specifieke applicaties, zoals een webserver of een database, maakt Pacemaker gebruik van Resource Agents (RA). Een Resource Agent fungeert als een tussenlaag die de standaardcommando's van Pacemaker (start, stop, monitor) vertaalt naar specifieke scripts of acties die de applicatie begrijpt \autocite{ClusterLabs2}. De efficiëntie waarmee deze agents een falen detecteren, is een bepalende factor voor de uiteindelijke hersteltijd.
+\medskip
+
+Hoewel dit niet het volledige toepassingsgebied van Pacemaker dekt – onderdelen zoals fencing en het beheer via pcs en pcsd worden in de volgende secties nader toegelicht – biedt de interne structuur van de CIB, de CRMd en de Resource Agents een stevige basis om de werking van de cluster te doorgronden.
+
+\section{RHEL High Availability Add-On Stack}
+Voor de technische realisatie van dit onderzoek wordt gebruikgemaakt van de Red Hat Enterprise Linux (RHEL) High Availability Add-On. Deze softwarestack levert de noodzakelijke instrumenten om een groep RHEL-nodes te laten functioneren als een enkel systeem. In de context van dit onderzoek vormt deze stack het fundament voor de Proof-of-Concept (PoC). De stack is modulair opgebouwd en bestaat uit componenten voor clusterinfrastructuur, service management en uitgebreide beheertools \autocite{RedHat}.
+
+\subsection{Beheer en configuratie: Pcs en Pcsd}
+De primaire tool binnen deze stack is pcs (Pacemaker/Corosync configuration system), een command-line interface die het beheer van complexe systemen zoals Corosync en Pacemaker centraliseert \autocite{ClusterLabs2026}. In plaats van handmatige aanpassingen per node, regelt pcs de volledige infrastructuur en resources vanaf één punt \autocite{RedHat}. Dit werkt nauw samen met de pcsd-daemon, die op elke node draait om configuraties te synchroniseren en administratieve taken op afstand uit te voeren. Zonder deze daemon zou het onmogelijk zijn om instellingen, zoals timeout-waarden voor de RTO, consistent door te voeren in de gehele Active-Passive omgeving \autocite{Oracle}.
+\medskip
+
+Voor een visueel overzicht biedt de stack de pcsd Web UI, waarmee beheerders meerdere clusters tegelijkertijd kunnen monitoren en beheren via de browser. Via deze grafische interface kunnen resources geconfigureerd worden, statusupdates in real-time worden gevolgd en nieuwe nodes eenvoudig worden toegevoegd \autocite{RedHat2}.
+
+\subsection{Aanvullende componenten en afbakening}
+Hoewel de stack kan worden uitgebreid met de Resilient Storage Add-On (zoals GFS2 en lvmlockd) voor gedeelde opslag of HAProxy voor load balancing op applicatieniveau, vallen deze buiten de directe scope van dit onderzoek \autocite{RedHat}. Binnen de specifieke Active-Passive focus blijven deze supplementen ondergeschikt aan het optimaliseren van de kernparameters binnen Pacemaker. De prioriteit ligt hierbij op het behalen van de vooropgestelde RTO-doelen via de primaire beheertools.
+
+\section{Data-integriteit en Cluster-beveiliging: Fencing en Quorum}
+In een High Availability-omgeving is de integriteit van de data vaak nog belangrijker dan de uptime van de dienst zelf. Wanneer de onderlinge communicatie tussen nodes faalt, ontstaat het risico op een 'split-brain'-scenario. In deze situatie verliezen nodes het contact met elkaar, waardoor beide onterecht kunnen concluderen dat zij de actieve leider zijn. Dit leidt tot een kritiek conflict waarbij twee nodes gelijktijdig proberen te schrijven naar dezelfde gedeelde bronnen, wat uiteindelijk resulteert in data-corruptie \autocite{Layrs2026}. Om dit te voorkomen, steunt de cluster op de combinatie van fencing en quorum.
+
+\subsection{De werking van Fence Agents}
+Een cruciaal onderdeel van de beveiligingsarchitectuur is de fence agent (of fencing agent), een specifiek type resource agent binnen de stonith-klasse. De fence agent fungeert als een tussenlaag: hij isoleert de specifieke kennis over fencing-technologieën van de kernlogica van de cluster. Hierdoor hoeft Pacemaker zelf geen diepgaande kennis te hebben van de onderliggende hardware of protocollen.
+
+De fence agent stelt gestandaardiseerde commando's ter beschikking, zoals off en reboot, die de cluster aanroept om een node te isoleren. Pacemaker ondersteunt hierbij twee belangrijke standaarden voor deze agents \autocite{ClusterLabs}:
+\begin{itemize}
+    \item Red Hat Cluster Suite (RHCS)-stijl: Deze agents bevinden zich doorgaans in \texttt{/usr/sbin} en zijn herkenbaar aan namen die beginnen met de prefix \texttt{fence\_}.
+    \item Linux-HA-stijl: Deze agents maken gebruik van namen die beginnen met de prefix \texttt{external/}.
+\end{itemize}
+In feite zijn deze agents scripts die de daadwerkelijke fencing-acties uitvoeren op basis van de meegegeven parameters van het doelsysteem.
+
+\subsection{Resource Fencing versus Node Fencing}
+Binnen de implementatie van fencing kan een onderscheid worden gemaakt in de manier waarop de isolatie wordt uitgevoerd \autocite{SUSE, Romancik2024}:
+\begin{itemize}
+    \item Resource-level fencing: Dit mechanisme garandeert exclusieve toegang tot een specifieke bron. Bekende voorbeelden hiervan zijn het aanpassen van de zonering van een node op een SAN fiber channel switch, waardoor de node de toegang tot zijn disks verliest, of het toepassen van methoden zoals SCSI-reservaties.
+    \item Node-level fencing: Dit is de meest robuuste methode, waarbij de volledige node fysiek wordt uitgeschakeld of herstart. Deze vorm van fencing staat bekend als STONITH (Shoot The Other Node In The Head). Het garandeert dat resources niet langer actief zijn op een falende node door de toegang van die node tot de cluster en resources strikt te beperken of af te snijden.
+\end{itemize}
+
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=0.8\textwidth]{stonith-diagram}
+    \caption[STONITH: Fysieke Node Fencing]{STONITH: Fysieke Node Fencing in High-Availability Clusters. Het diagram toont hoe Node B via een IPMI-commando de stroomtoevoer van Node A onderbreekt (BMC) om een split-brain scenario te voorkomen voordat de gedeelde opslag veilig wordt overgenomen \autocite{Layrs2026}.}
+    \label{fig:stonith}
 \end{figure}
 
-\begin{listing}
-  \begin{minted}{python}
-    import pandas as pd
-    import seaborn as sns
+Hoewel dit proces de hersteltijd tijdelijk beïnvloedt, is het de enige methode om data-integriteit in een gedistribueerd systeem onomstotelijk te waarborgen.
 
-    penguins = sns.load_dataset('penguins')
-    sns.relplot(data=penguins, x="flipper_length_mm", y="bill_length_mm", hue="species")
-  \end{minted}
-  \caption[Voorbeeld codefragment]{Voorbeeld van het invoegen van een codefragment.}
-\end{listing}
+\subsection{Het concept Quorum}
+Waar fencing de fysieke uitvoering van de isolatie verzorgt, fungeert quorum als de logische beslissingslaag die bepaalt welke groep nodes mag blijven opereren. Een RHEL-cluster maakt gebruik van de votequorum service om split-brain situaties te vermijden door middel van een stemsysteem waarbij een cluster pas over quorum beschikt wanneer meer dan de helft van de geconfigureerde nodes online is. Om de kans op datacorruptie bij falen te minimaliseren, zal Pacemaker standaard alle resources stoppen wanneer de cluster dit quorum verliest \autocite{RedHat3, Layrs2026}.
 
-\lipsum[7-20]
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=0.8\textwidth]{quorum-diagram}
+    \caption[Visualisatie van quorum-gebaseerde split-brain preventie]{Visualisatie van quorum-gebaseerde split-brain preventie in een 5-node cluster. Enkel de partitie met de meerderheid (3 stemmen) kan een leider verkiezen en schrijfbewerkingen accepteren, terwijl de minderheidspartitie overgaat op 'Read-Only' modus om conflicten te vermijden \autocite{Layrs2026}.}
+    \label{fig:quorum}
+\end{figure}
 
-\begin{table}
-  \centering
-  \begin{tabular}{lcr}
-    \toprule
-    \textbf{Kolom 1} & \textbf{Kolom 2} & \textbf{Kolom 3} \\
-    $\alpha$         & $\beta$          & $\gamma$         \\
-    \midrule
-    A                & 10.230           & a                \\
-    B                & 45.678           & b                \\
-    C                & 99.987           & c                \\
-    \bottomrule
-  \end{tabular}
-  \caption[Voorbeeld tabel]{\label{tab:example}Voorbeeld van een tabel.}
-\end{table}
+Hoewel quorum-gebaseerde benaderingen garanderen dat slechts één partitie een nieuwe leider kan kiezen, is quorum op zichzelf echter niet voldoende om de volledige integriteit te waarborgen. Er is nog steeds fencing nodig om verouderde operaties van afgezette leiders te verwerpen en te blokkeren. Robuuste systemen combineren daarom quorum voor de verkiezing van een leider met fencing-mechanismen voor de feitelijke validatie van operaties. Door deze koppeling wordt voorkomen dat een cluster bij een communicatiebreuk uiteenvalt in onafhankelijke delen die potentieel gelijktijdig naar dezelfde data schrijven, wat onvermijdelijk tot dataverlies of corruptie zou leiden \autocite{RedHat, Layrs2026}.
 
+\section{Parameters voor RTO-optimalisatie}
+De minimalisatie van de Recovery Time Objective (RTO) binnen een High Availability-omgeving is afhankelijk van een gecoördineerde afstemming van parameters op verschillende niveaus van de softwarestack. Het nauwkeurig configureren van monitoringperiodes, timeouts en vertragingen bij het stoppen en starten van services heeft een significante invloed op de totale failover-tijd. Door deze parameters te optimaliseren, kan het herstelproces worden versneld zonder de onderliggende communicatielaag van de cluster te overbelasten \autocite{Mani2022}.
+
+\subsection{Corosync: Configuratie voor Aggressieve Detectie}
+De snelheid waarmee een cluster reageert op een incident begint bij de configuratie van de Corosync-daemon, die verantwoordelijk is voor de foutdetectie op node-niveau \autocite{Die, Cubepath2026}.
+
+\begin{itemize}
+    \item Token Timeout: De \texttt{token} parameter in de configuratie bepaalt hoe lang Corosync wacht op een bericht voordat een node als verloren wordt beschouwd. Voor scenario's die een snelle foutdetectie vereisen, kan deze waarde agressief worden ingesteld op bijvoorbeeld 3000ms.
+    \item Token Retransmits: Via \texttt{token\_retransmits\_before\_loss\_const} wordt gedefinieerd hoe vaak een token opnieuw verzonden mag worden voordat de verbinding definitief als verbroken wordt gemarkeerd. In agressieve opstellingen wordt dit vaak gecombineerd met een verhoogde waarde, zoals 10 of 20, om de stabiliteit van de detectie te waarborgen.
+    \item Consensus: Deze waarde bepaalt de tijd die nodig is om een nieuwe lidmaatschapsstatus te bevestigen nadat een fout is gedetecteerd, waarbij een waarde van 3600ms vaak als richtlijn dient bij een token van 3000ms.
+\end{itemize}
+
+\subsection{Pacemaker: Cluster Properties}
+Nadat Corosync een falen heeft gemeld, bepaalt de configuratie van Pacemaker hoe snel de transitie naar een nieuwe actieve node verloopt \autocite{ClusterLabs, Cubepath2026}.
+
+\begin{itemize}
+    \item DC-deadtime: Deze cluster-optie bepaalt hoe lang er gewacht wordt op antwoorden van andere nodes tijdens de verkiezing van een nieuwe Designated Controller (DC). Voor een snelle transitie kan deze waarde worden afgesteld op 20 seconden.
+    \item Cluster-recheck-interval: Pacemaker controleert periodiek de status van de cluster voor onder andere failure-timeouts; dit interval kan worden verlaagd naar bijvoorbeeld 2 minuten om de reactiesnelheid op tijdgebaseerde regels te verhogen.
+    \item Concurrent Fencing: Door de optie \texttt{concurrent-fencing} op \texttt{true} te zetten, is de cluster in staat om meerdere fencing-acties parallel uit te voeren, wat de hersteltijd in complexe scenario's verkort.
+\end{itemize}
+
+\subsection{Resource Agent Tuning}
+Op het niveau van de individuele services (zoals de webserver) bepalen de Resource Agent-instellingen de snelheid van het service-herstel \autocite{Cubepath2026}.
+
+\begin{itemize}
+    \item Monitor Interval: Het monitor interval bepaalt de frequentie waarmee de status van een resource wordt gecontroleerd; een interval van bijvoorbeeld 15 seconden zorgt voor een snelle detectie van applicatiefouten.
+    \item Start/Stop Timeouts: Deze waarden moeten worden afgestemd op de specifieke applicatie om te voorkomen dat de cluster onnodig lang wacht op acties die al gefaald zijn. Een start-timeout van 60 seconden is een gangbare instelling voor webserver-resources.
+    \item Resource Stickiness: Via \texttt{resource-stickiness} (bijvoorbeeld ingesteld op 100) wordt voorkomen dat een resource onnodig terug migreert naar een herstelde node, wat een extra periode van downtime zou introduceren.
+\end{itemize}
+
+\subsection{TCP-Stack en Netwerkoptimalisatie}
+Buiten de clustersoftware om speelt de configuratie van de Linux-netwerkstack een cruciale rol in het voorkomen van lange wachttijden tijdens een failover \autocite{Pracucci2018}.
+
+\begin{itemize}
+    \item net.ipv4.tcp\_retries2: Deze systeemparameter bepaalt hoe vaak de TCP-stack een pakket opnieuw verzendt voordat de verbinding wordt verbroken. In standaardconfiguraties kan dit proces tot 15 minuten duren. Het substantieel verlagen van deze waarde is noodzakelijk om te garanderen dat de applicatielaag tijdig reageert op een onbereikbare node.
+    \item net.ipv4.tcp\_syn\_retries: Het beperken van het aantal pogingen om een nieuwe TCP-verbinding op te zetten verhoogt de reactiesnelheid van de stack tijdens een incident.
+\end{itemize}
+
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=0.9\textwidth]{tcp-retransmissions}
+    \caption[Impact van TCP-retransmissies op downtime]{Overzicht van de cumulatieve wachttijd bij opeenvolgende TCP-retransmissies. De tabel illustreert hoe de standaardinstellingen van de Linux-kernel leiden tot een totale downtime van meer dan 15 minuten voordat een verbinding definitief wordt verbroken \autocite{Pracucci2024}.}
+    \label{fig:tcp-retransmissions}
+\end{figure}

@@ -35,6 +35,7 @@
 7. **Woorden in ander lettertype / speciaal font wegdoen**
    - Controleer op consistentie van lettertype, lettergrootte, en stijl
    - Eventueel gebruik “Find & Replace” in Word of LaTeX
+   - Eventueel 'Azure Cloud' toevoegen in de titel? Specifieker maken?
 
 ---
 

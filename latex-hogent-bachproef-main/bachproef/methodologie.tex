@@ -5,7 +5,7 @@
 \chapter{\IfLanguageName{dutch}{Methodologie}{Methodology}}%
 \label{ch:methodologie}
 
-%% TODO: In dit hoofstuk geef je een korte toelichting over hoe je te werk bent
+%% TODO: In dit hoofstuk geef je een korte toelichting over hoe je te rk bent
 %% gegaan. Verdeel je onderzoek in grote fasen, en licht in elke fase toe wat
 %% de doelstelling was, welke deliverables daar uit gekomen zijn, en welke
 %% onderzoeksmethoden je daarbij toegepast hebt. Verantwoord waarom je
@@ -26,45 +26,90 @@
 %% Maak voor elke fase (behalve het literatuuronderzoek) een NIEUW HOOFDSTUK aan
 %% en geef het een gepaste titel.
 
-\section{Methodologie}%
-\label{sec:methodologie}
+In dit hoofdstuk wordt de procesmatige aanpak van het onderzoek toegelicht. Het onderzoek is opgedeeld in vier logische fasen, waarbij de focus verschuift van de initiële bouw naar de kwantitatieve optimalisatie van de hersteltijd.
 
-De methodologie hanteert een experimenteel onderzoeksontwerp met een duidelijke focus op de technische implementatie en kwantitatieve meting. De aanpak wordt onderverdeeld in drie fasen, waarbij de antwoorden op de deelvragen voor het probleem- en oplossingsdomein worden verzameld.
-
-\subsection{Fase 1: Basissysteem en Literatuuronderzoek}
-Deze eerste fase legt de basis voor het onderzoek en beantwoordt de theoretische deelvragen over het probleemdomein.
+\section{Fase 1: Opzet van de Baseline PoC}
+De eerste fase van dit onderzoek is gericht op het opzetten van een stabiele en representatieve testomgeving binnen de Azure cloud-infrastructuur van oXya. Deze fase vormt de basis voor alle opeenvolgende metingen; zonder een correct geconfigureerde basisopstelling zouden de resultaten van de RTO-optimalisatie niet geldig zijn.
 \medskip
 
-We starten met een diepgaand literatuuronderzoek. Hierbij wordt de officiële documentatie en relevante vakliteratuur over Pacemaker, Corosync en STONITH uitgebreid bestudeerd. Het doel is om niet alleen de exacte werking van deze tools te ontdekken, maar vooral om de invloed van configuratieparameters op de failover time in kaart te brengen. Dit levert ons een essentieel rapport op over welke RTO-parameters naar verwachting de grootste invloed zullen hebben op de hersteltijd.
+We starten met het opzetten van een Active-Passive High Availability cluster die voldoet aan enterprise-standaarden. Concreet zijn hiervoor twee virtuele machines met Red Hat Enterprise Linux (RHEL) 9.x geprovisioneerd binnen een specifieke Resource Group in de Azure Portal. De keuze voor Azure als platform komt voor uit de situatie bij het stagebedrijf. Daarnaast biedt het de beste oplossing voor de specifieke uitdagingen die cloud-netwerken met zich meebrengen voor cluster-heartbeats.
 \medskip
 
-Vervolgens implementeren we de basis Proof-of-Concept (PoC). De Active-Passive cluster wordt opgezet op twee virtuele machines draaiend op Red Hat Enterprise Linux 9. Deze machines worden uitgerust met Pacemaker en Corosync en een standaard webdienst (bijvoorbeeld Apache of NGINX) wordt geconfigureerd als een gedeelde clusterresource, inclusief een virtueel IP-adres. De initiële configuratie volgt hierbij de aanbevolen, nog niet geoptimaliseerde, 'out-of-the-box' instellingen.
+(!!! --- BELANGRIJK --- !!! Onderstaande is nog maar een schets, dit moet nog veranderen eenmaal de PoC opgezet is)
+\medskip 
 
-\subsection{Fase 2: Implementatie en Validatie van STONITH}
-Het Power Fencing-mechanisme is cruciaal; zonder een STONITH-oplossing is betrouwbare HA onmogelijk.
-\medskip
-
-We richten ons op een betaalbare STONITH-implementatie door een geschikte fence\_agent te selecteren. We maken gebruik van de fence\_ipmilan agent of de API-gebaseerde agent van het aanwezige virtualisatieplatform.
-\medskip
-
-Vervolgens testen we dit grondig. Door een 'split-brain'-situatie na te bootsen, valideren we de betrouwbaarheid van de Fencing. Dit wordt vastgelegd in een helder Fencing Validatie Rapport.
-
-\subsection{Fase 3: RTO-Meting en Iteratieve Optimalisatie}
-Dit is het hart van het onderzoek: het meten en optimaliseren van de hersteltijd op de infrastructuur van het stagebedrijf oXya.
-\medskip
-
-De PoC-omgeving is opgezet op een dedicated cluster bij oXya, waarbij twee virtuele nodes draaien op Red Hat Enterprise Linux 9. Elke node beschikt over voldoende RAM en vCPUs om een realistische belasting te simuleren. Voor Power Fencing wordt gebruikgemaakt van een agent die communiceert met de fysieke beheerkaarten (zoals IPMI) van de onderliggende hosts of de API van het virtualisatieplatform.
-\medskip
-
-Om de RTO exact en objectief vast te leggen, wordt gebruikgemaakt van een externe monitoring- en logging-node. De volgende instrumenten worden ingezet:
+Tijdens de configuratie doorlopen we de volgende stappen:
 
 \begin{itemize}
-    \item HTTP Probing (Availability): Een script op basis van cURL of een tool zoals Uptime Kuma voert elke 500ms een request uit naar het Virtueel IP. De tijd tussen het eerste gefaalde request en het eerste succesvolle herstel na de failover definieert de bruto RTO.
-    \item Pacemaker Logging \& Crm\_mon: De interne logs van de cluster worden geanalyseerd met journalctl om de exacte tijdstippen van failure detection, fencing execution en resource start tot op de milliseconde te synchroniseren.
-    \item Wireshark/Tcpdump: Voor de analyse van de netwerkmigratie wordt netwerkverkeer onderschept om te meten hoe lang de ARP-verversing duurt voordat de switch het verkeer naar de nieuwe node stuurt.
+    \item Netwerk en Hostname Resolution: Om de afhankelijkheid van externe diensten te minimaliseren en een Single Point Of Failure op DNS-niveau te vermijden, is de hostname resolution geconfigureerd via het /etc/hosts bestand op beide nodes.
+    \item Installatie van de HA-Stack: Met behulp van de officiële RHEL-repositories is de High Availability Add-On geïnstalleerd, bestaande uit Pacemaker, Corosync en de bijhorende tool pcs.
+    \item Resource Configuratie: De Apache-service (httpd) is ingericht als de primaire cluster-resource. Hierbij is expliciet ingesteld dat systemd de service niet mag beheren. Dit beheer ligt volledig bij de Pacemaker-daemon om de statusintegriteit te waarborgen.
+    \item Content Synchronisatie: Op beide nodes is een identieke index.html geplaatst in de directory /var/www/html om consistentie bij failover te garanderen tijdens de initiële tests.
 \end{itemize}
 
-Eerst wordt een nulmeting uitgevoerd op de basisconfiguratie voor drie scenario's: een harde servercrash, een service-crash en netwerkisolatie. Vervolgens start de iteratieve optimalisatie waarbij parameters zoals timeout-waarden, het start-interval en de resource-stickiness stapsgewijs worden aangepast. Na elke wijziging worden de metingen herhaald om de impact op de RTO en de systeemstabiliteit te valideren.
+De configuratie is gebaseerd op de High-Availability Guide van Microsoft voor RHEL op Pacemaker (BRONVERMELDING HIER: MICROSOFT). Er is bewust gekozen voor een standaardconfiguratie om een representatief beginpunt te creëren. Dit laat ons toe om in latere fasen op een correcte manier het verschil tussen een standaardinstallatie en een geoptimaliseerde configuratie aan te tonen. 
+\medskip
+
+Het resultaat van deze fase is een volledig operationele, alleen nog niet-geoptimaliseerde webstack binnen de toegewezen Azure Resource Group bij oXya. De cluster is in staat om de actieve node te identificeren en de status van de Apache-service over beide nodes te bewaken.
+
+\section{Fase 2: Implementatie van Fencing en Quorum}
+Vanaf hier verschuift de focus van de standaardinstallatie naar de beveiliging van de cluster. Het hoofddoel hierbij is het waarborgen van de data-integriteit door het risico op mogelijke 'split-brain'-scenario's te elimineren. In deze fase wordt een robuust fencing-mechanisme geconfigureerd dat is afgestemd op de Azure-infrastructuur. 
+\medskip
+
+Om dit te realiseren worden volgende stappen uitgevoerd:
+
+\begin{itemize}
+    \item Configuratie van de Azure Fence Agent: Er is gekozen voor de implementatie van STONITH (Shoot The Other Node In The Head) via de fence\_azure\_arm agent. Dit mechanisme stelt de cluster in staat om een falende node fysiek te isoleren door deze via de Azure-omgeving uit te schakelen of te herstarten.
+    \item Identiteitsbeheer via Managed Identities: Voor de authenticatie van de fencing-agent is gebruikgemaakt van System-assigned Managed Identities. Elke virtuele machine in de cluster heeft een eigen identiteit gekregen binnen Azure Active Directory (Microsoft Entra ID). Dit vervangt de traditionele methode met Service Principals, waardoor er geen gevoelige credentials (zoals client secrets) lokaal op de nodes opgeslagen hoeven te worden.
+    \item Rechtenbeheer en Custom Roles: Via de Azure CLI is een specifieke custom RBAC-rol (Role-Based Access Control) gedefinieerd en toegewezen aan de Managed Identities. Deze rol is strikt beperkt tot de noodzakelijke acties (PowerOff, Start, Restart) op de specifieke VM's binnen de Resource Group, volgens het principe van least privilege.
+    \item Quorum-afstemming: Binnen de Corosync-configuratie zijn de quorum-instellingen geoptimaliseerd voor een 2-node omgeving.  Dit bepaalt hoe de cluster reageert als de onderlinge verbinding wegvalt. Cruciaal hierbij is dat het fencing-device beslist of de quorum-status behouden blijft.
+\end{itemize}
+
+De keuze voor Managed Identities boven Service Principals is een weloverwogen stap richting de onderzoeksvraag. Managed Identities nemen het administratieve beheer van certificaten of wachtwoorden weg, wat de complexiteit en de kans op menselijke fouten aanzienlijk verkleint (BRON HIER: OASIS). Bovendien is er gekozen voor de Azure Fence Agent in plaats van SBD (Storage Based Death) met iSCSI, omdat dit een meer cloud-geoptimaliseerde benadering is (BRON HIER: MICROSOFT).
+\medskip
+
+In tegenstelling tot de eerste fase, levert deze fase een “fencing-ready” cluster op. De omgeving kan hiermee als veilig en testbaar worden beschouwd, aangezien data-integriteit nu onder alle omstandigheden gegarandeerd kan worden door de isolatie van falende nodes.
+
+\section{Fase 3: Kwantitatieve Nulmeting}
+Hier wordt onderzocht hoe de cluster presteert met de standaardinstellingen; de baseline RTO wordt hier vastgesteld. Deze data is essentieel om later de effectiviteit van de optimalisaties te kunnen bewijzen. 
+\medskip
+
+Hiervoor worden drie foutscenario's toegepast:
+
+\begin{itemize}
+    \item Node-level failure (Harde crash): De actieve VM wordt via de Azure Portal abrupt uitgeschakeld. Dit test de reactiesnelheid van Corosync en de effectiviteit van de Azure Fence Agent.
+    \item Service-level failure: De httpd-daemon wordt handmatig gestopt of 'gekilld' op de actieve node, zonder de VM uit te schakelen. Dit test hoe snel Pacemaker een resource-fout detecteert en herstelt.
+    \item Netwerkisolatie: Het blokkeren van het heartbeat-verkeer tussen de nodes. Dit test de quorum-logica en het vermogen van de cluster om een 'split-brain' correct af te handelen via fencing.
+\end{itemize}
+
+Om de RTO-waarden nauwkeurig te kunnen meten, wordt er niet enkel afgegaan op de interne systeemlogs, maar wordt er ook gebruikgemaakt van een extern monitoringscript dat de beschikbaarheid van de webapplicatie controleert.
+
+\begin{itemize}
+    \item HTTP Polling: Het script verstuurt elke 100 milliseconden een request naar het IP-adres van de cluster (of de Load Balancer).
+    \item Dataverzameling: Elke respons (of het uitblijven daarvan) wordt gelogd met een timestamp. De RTO wordt berekend als de totale tijd tussen het laatste succesvolle '200 OK' bericht en het eerste succesvolle herstel na het incident.
+    \item Correlatie: Deze externe data wordt vergeleken met de Pacemaker logs (journalctl of /var/log/cluster/pacemaker.log) om precies te pinpointen waar de meeste tijd verloren gaat.
+\end{itemize}
+
+Door te meten met een interval van 100ms wordt een grote hoeveelheid data verkregen, wat noodzakelijk is wanneer er gestreefd wordt naar een RTO van slechts enkele seconden. De keuze voor HTTP polling garandeert dat de downtime gemeten wordt zoals een eindgebruiker die zou ervaren.
+\medskip
+
+Deze metingen leveren een dataset van het beginpunt op; het bevat de gemiddelde hersteltijden per scenario onder standaardomstandigheden en dient als blauwdruk voor de optimalisatiefase.
+
+\section{Fase 4: Parameter-optimalisatie}
+De vierde en finale fase van het onderzoek is gericht op het stapsgewijs reduceren van de hersteltijd door middel van afstelling op verschillende niveaus van de infrastructuur. Dit is het hart van het onderzoek: er wordt een transitie gemaakt van een standaard werkende cluster naar een geoptimaliseerde high-performance omgeving.
+\medskip
+
+Het hoofddoel is uiteraard het bereiken van de laagst mogelijke RTO. De uitvoering hiervan verloopt via een iteratief proces waarbij parameters op drie niveaus worden aangepast:
+\begin{itemize}
+    \item Corosync (Foutdetectie): De token timeout en consensus waarden worden verlaagd naar agressievere instellingen om de tijd tussen een falende node en de detectie ervan te minimaliseren.
+    \item Pacemaker (Resource Management): Er wordt geëxperimenteerd met resource-stickiness en specifieke monitor-intervals voor de Apache-resource. Hiermee wordt voorkomen dat resources onnodig migreren (wat extra downtime veroorzaakt) en wordt de reactiesnelheid op service-fouten verhoogd.
+    \item Linux TCP-stack (Netwerklaag): De parameters net.ipv4.tcp\_retries2 en net.ipv4.tcp\_syn\_retries worden substantieel verlaagd. Dit is cruciaal om te voorkomen dat de applicatielaag minutenlang blijft wachten op TCP-timeouts tijdens een failover.
+\end{itemize}
+
+Na elke significante parameterwijziging worden de drie testscenario's uit de vorige fase opnieuw uitgevoerd. Deze manier van werken staat toe dat de impact van individuele parameters goed onderzocht kan worden. Door niet alle wijzigingen tegelijk door te voeren, kan exact worden bepaald welke optimalisatie een bijdrage levert en welke niet. 
+\medskip
+
+De resultaten van de geoptimaliseerde tests worden vergeleken tegenover de dataset van de nulmeting. De deliverable van deze fase is een vergelijkende analyse in de vorm van tabellen die het verschil in hersteltijd tussen de standaardconfiguratie en de geoptimaliseerde configuratie visualiseren. De conclusie van het onderzoek is hierop afgestemd.
 
 %\lipsum[21-25]
 

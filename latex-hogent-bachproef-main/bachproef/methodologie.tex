@@ -26,31 +26,28 @@
 %% Maak voor elke fase (behalve het literatuuronderzoek) een NIEUW HOOFDSTUK aan
 %% en geef het een gepaste titel.
 
-In dit hoofdstuk wordt de procesmatige aanpak van het onderzoek toegelicht. Het onderzoek is opgedeeld in vier logische fasen, waarbij de focus verschuift van de initiële bouw naar de kwantitatieve optimalisatie van de hersteltijd.
+In dit hoofdstuk wordt de procesmatige aanpak van het onderzoek toegelicht. Het onderzoek is opgedeeld in vier logische fasen, waarbij de focus verschuift van de initiële opzet naar de kwantitatieve optimalisatie van de hersteltijd.
 
 \section{Fase 1: Opzet van de Baseline PoC}
 De eerste fase van dit onderzoek is gericht op het opzetten van een stabiele en representatieve testomgeving binnen de Azure cloud-infrastructuur van oXya. Deze fase vormt de basis voor alle opeenvolgende metingen; zonder een correct geconfigureerde basisopstelling zouden de resultaten van de RTO-optimalisatie niet geldig zijn.
 \medskip
 
-We starten met het opzetten van een Active-Passive High Availability cluster die voldoet aan enterprise-standaarden. Concreet zijn hiervoor twee virtuele machines met Red Hat Enterprise Linux (RHEL) 9.x geprovisioneerd binnen een specifieke Resource Group in de Azure Portal. De keuze voor Azure als platform komt voor uit de situatie bij het stagebedrijf. Daarnaast biedt het de beste oplossing voor de specifieke uitdagingen die cloud-netwerken met zich meebrengen voor cluster-heartbeats.
+We starten met het opzetten van een Active-Passive High Availability cluster die voldoet aan enterprise-standaarden. Concreet zijn hiervoor twee virtuele machines met Red Hat Enterprise Linux (RHEL) 9.4 geprovisioneerd binnen een specifieke Resource Group in de Azure Portal. De keuze voor Azure als platform komt voor uit de situatie bij het stagebedrijf. Daarnaast biedt het de beste oplossing voor de specifieke uitdagingen die cloud-netwerken met zich meebrengen voor cluster-heartbeats.
 \medskip
-
-(!!! --- BELANGRIJK --- !!! Onderstaande is nog maar een schets, dit moet nog veranderen eenmaal de PoC opgezet is)
-\medskip 
 
 Tijdens de configuratie doorlopen we de volgende stappen:
 
 \begin{itemize}
     \item Netwerk en Hostname Resolution: Om de afhankelijkheid van externe diensten te minimaliseren en een Single Point Of Failure op DNS-niveau te vermijden, is de hostname resolution geconfigureerd via het /etc/hosts bestand op beide nodes.
-    \item Installatie van de HA-Stack: Met behulp van de officiële RHEL-repositories is de High Availability Add-On geïnstalleerd, bestaande uit Pacemaker, Corosync en de bijhorende tool pcs.
+    \item Installatie van de HA-Stack: Met behulp van de officiële RHEL-repositories is de High Availability Add-On geïnstalleerd, bestaande uit Pacemaker, Corosync en de bijhorende tool pcs \autocite{RedHat}.
     \item Resource Configuratie: De Apache-service (httpd) is ingericht als de primaire cluster-resource. Hierbij is expliciet ingesteld dat systemd de service niet mag beheren. Dit beheer ligt volledig bij de Pacemaker-daemon om de statusintegriteit te waarborgen.
     \item Content Synchronisatie: Op beide nodes is een identieke index.html geplaatst in de directory /var/www/html om consistentie bij failover te garanderen tijdens de initiële tests.
 \end{itemize}
 
-De configuratie is gebaseerd op de High-Availability Guide van Microsoft voor RHEL op Pacemaker (BRONVERMELDING HIER: MICROSOFT). Er is bewust gekozen voor een standaardconfiguratie om een representatief beginpunt te creëren. Dit laat ons toe om in latere fasen op een correcte manier het verschil tussen een standaardinstallatie en een geoptimaliseerde configuratie aan te tonen. 
+De configuratie is gebaseerd op de High-Availability Guide van Microsoft voor RHEL op Pacemaker \autocite{Microsoft2026}. Er is bewust gekozen voor een standaardconfiguratie om een representatief beginpunt te creëren. Dit laat ons toe om in latere fasen op een correcte manier het verschil tussen een standaardinstallatie en een geoptimaliseerde configuratie aan te tonen. 
 \medskip
 
-Het resultaat van deze fase is een volledig operationele, alleen nog niet-geoptimaliseerde webstack binnen de toegewezen Azure Resource Group bij oXya. De cluster is in staat om de actieve node te identificeren en de status van de Apache-service over beide nodes te bewaken.
+Het resultaat van deze fase is een volledig operationele, nog niet-geoptimaliseerde webstack binnen de toegewezen Azure Resource Group bij oXya. De cluster is in staat om de actieve node te identificeren en de status van de Apache-service over beide nodes te bewaken.
 
 \section{Fase 2: Implementatie van Fencing en Quorum}
 Vanaf hier verschuift de focus van de standaardinstallatie naar de beveiliging van de cluster. Het hoofddoel hierbij is het waarborgen van de data-integriteit door het risico op mogelijke 'split-brain'-scenario's te elimineren. In deze fase wordt een robuust fencing-mechanisme geconfigureerd dat is afgestemd op de Azure-infrastructuur. 
@@ -62,10 +59,10 @@ Om dit te realiseren worden volgende stappen uitgevoerd:
     \item Configuratie van de Azure Fence Agent: Er is gekozen voor de implementatie van STONITH (Shoot The Other Node In The Head) via de fence\_azure\_arm agent. Dit mechanisme stelt de cluster in staat om een falende node fysiek te isoleren door deze via de Azure-omgeving uit te schakelen of te herstarten.
     \item Identiteitsbeheer via Managed Identities: Voor de authenticatie van de fencing-agent is gebruikgemaakt van System-assigned Managed Identities. Elke virtuele machine in de cluster heeft een eigen identiteit gekregen binnen Azure Active Directory (Microsoft Entra ID). Dit vervangt de traditionele methode met Service Principals, waardoor er geen gevoelige credentials (zoals client secrets) lokaal op de nodes opgeslagen hoeven te worden.
     \item Rechtenbeheer en Custom Roles: Via de Azure CLI is een specifieke custom RBAC-rol (Role-Based Access Control) gedefinieerd en toegewezen aan de Managed Identities. Deze rol is strikt beperkt tot de noodzakelijke acties (PowerOff, Start, Restart) op de specifieke VM's binnen de Resource Group, volgens het principe van least privilege.
-    \item Quorum-afstemming: Binnen de Corosync-configuratie zijn de quorum-instellingen geoptimaliseerd voor een 2-node omgeving.  Dit bepaalt hoe de cluster reageert als de onderlinge verbinding wegvalt. Cruciaal hierbij is dat het fencing-device beslist of de quorum-status behouden blijft.
+    \item Quorum-afstemming: Binnen de Corosync-configuratie zijn de quorum instellingen geoptimaliseerd voor een 2-node omgeving.  Dit bepaalt hoe de cluster reageert als de onderlinge verbinding wegvalt. Cruciaal hierbij is dat het fencing-device beslist of de quorum-status behouden blijft.
 \end{itemize}
 
-De keuze voor Managed Identities boven Service Principals is een weloverwogen stap richting de onderzoeksvraag. Managed Identities nemen het administratieve beheer van certificaten of wachtwoorden weg, wat de complexiteit en de kans op menselijke fouten aanzienlijk verkleint (BRON HIER: OASIS). Bovendien is er gekozen voor de Azure Fence Agent in plaats van SBD (Storage Based Death) met iSCSI, omdat dit een meer cloud-geoptimaliseerde benadering is (BRON HIER: MICROSOFT).
+De keuze voor Managed Identities boven Service Principals is een weloverwogen stap richting de onderzoeksvraag. Managed Identities nemen het administratieve beheer van certificaten of wachtwoorden weg, wat de complexiteit en de kans op menselijke fouten aanzienlijk verkleint \autocite{Oasis2025}. Bovendien is er gekozen voor de Azure Fence Agent in plaats van SBD (Storage Based Death) met iSCSI, omdat dit een meer cloud-geoptimaliseerde benadering is \autocite{Microsoft2026}.
 \medskip
 
 In tegenstelling tot de eerste fase, levert deze fase een “fencing-ready” cluster op. De omgeving kan hiermee als veilig en testbaar worden beschouwd, aangezien data-integriteit nu onder alle omstandigheden gegarandeerd kan worden door de isolatie van falende nodes.
@@ -103,7 +100,7 @@ Het hoofddoel is uiteraard het bereiken van de laagst mogelijke RTO. De uitvoeri
 \begin{itemize}
     \item Corosync (Foutdetectie): De token timeout en consensus waarden worden verlaagd naar agressievere instellingen om de tijd tussen een falende node en de detectie ervan te minimaliseren.
     \item Pacemaker (Resource Management): Er wordt geëxperimenteerd met resource-stickiness en specifieke monitor-intervals voor de Apache-resource. Hiermee wordt voorkomen dat resources onnodig migreren (wat extra downtime veroorzaakt) en wordt de reactiesnelheid op service-fouten verhoogd.
-    \item Linux TCP-stack (Netwerklaag): De parameters net.ipv4.tcp\_retries2 en net.ipv4.tcp\_syn\_retries worden substantieel verlaagd. Dit is cruciaal om te voorkomen dat de applicatielaag minutenlang blijft wachten op TCP-timeouts tijdens een failover.
+    \item Linux TCP-stack (Netwerklaag): De parameter net.ipv4.tcp\_retries2 en de bijhorende parameter net.ipv4.tcp\_syn\_retries worden substantieel verlaagd. Dit is cruciaal om te voorkomen dat de applicatielaag minutenlang blijft wachten op TCP-timeouts tijdens een failover.
 \end{itemize}
 
 Na elke significante parameterwijziging worden de drie testscenario's uit de vorige fase opnieuw uitgevoerd. Deze manier van werken staat toe dat de impact van individuele parameters goed onderzocht kan worden. Door niet alle wijzigingen tegelijk door te voeren, kan exact worden bepaald welke optimalisatie een bijdrage levert en welke niet. 

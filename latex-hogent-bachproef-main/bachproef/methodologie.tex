@@ -74,9 +74,9 @@ Hier wordt onderzocht hoe de cluster presteert met de standaardinstellingen; de 
 Hiervoor worden drie foutscenario's toegepast:
 
 \begin{itemize}
-    \item Node-level failure (Harde crash): De actieve VM wordt via de Azure Portal abrupt uitgeschakeld. Dit test de reactiesnelheid van Corosync en de effectiviteit van de Azure Fence Agent.
-    \item Service-level failure: De httpd-daemon wordt handmatig gestopt of 'gekilld' op de actieve node, zonder de VM uit te schakelen. Dit test hoe snel Pacemaker een resource-fout detecteert en herstelt.
-    \item Netwerkisolatie: Het blokkeren van het heartbeat-verkeer tussen de nodes. Dit test de quorum-logica en het vermogen van de cluster om een 'split-brain' correct af te handelen via fencing.
+    \item Service-level failure: De httpd-daemon wordt handmatig gestopt op de actieve node, zonder de VM uit te schakelen. Dit test hoe snel Pacemaker een resource-fout detecteert en lokaal herstelt op dezelfde node.
+    \item Netwerkisolatie (Split-brain): Het blokkeren van het heartbeat-verkeer tussen de nodes. Dit test de quorum-logica en het vermogen van de cluster om via fencing een node-wissel veilig af te handelen.
+    \item Node-level failure (Harde crash): De actieve VM wordt via de Azure Portal abrupt uitgeschakeld. Dit simuleert een totale hardware-uitval en test de reactiesnelheid van Corosync om de overgebleven node te activeren.
 \end{itemize}
 
 Om de RTO-waarden nauwkeurig te kunnen meten, wordt er niet enkel afgegaan op de interne systeemlogs, maar wordt er ook gebruikgemaakt van een extern monitoringscript dat de beschikbaarheid van de webapplicatie controleert.

@@ -28,6 +28,14 @@ Om de status van de cluster te bewaken, wordt gebruikgemaakt van een 'heartbeat'
 
 \subsection{HA-Architecturen: Active-Passive versus Active-Active}
 Binnen de clustering-technologie zijn er twee dominante architecturen, elk met hun eigen voor- en nadelen.
+\medskip
+
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=1\textwidth]{architecture.png}
+    \caption[Active-Active en Active-Passive]{Vergelijking van high availability architectuurmodellen. Links: Active-Active opstelling waarbij alle systeembronnen gelijktijdig worden benut. Rechts: Active-Passive opstelling met een primaire node voor verkeersafhandeling en een secundaire node voor redundantie \autocite{GeeksforGeeks2024}.}
+    \label{fig:architecture}
+\end{figure}
 
 \subsubsection{Active-Passive Architectuur}
 In dit onderzoek ligt de focus op de Active-Passive opstelling. Hierbij is op elk gegeven moment slechts één instantie (de actieve node) verantwoordelijk voor het verwerken van het verkeer. De tweede instantie (de passieve node) staat op stand-by en blijft volledig gesynchroniseerd, maar verwerkt geen verzoeken tenzij de actieve node faalt. Deze opstelling is vaak eenvoudiger in beheer en configuratie, en zeer kosteneffectief voor applicaties met een gemiddeld verkeersvolume \autocite{Luca2024}.
@@ -49,6 +57,13 @@ Bij het opstellen van een Disaster Recovery-plan zijn twee statistieken cruciaal
 Voor moderne organisaties is een lage RTO, bij voorkeur in de orde van enkele seconden, essentieel om reputatieschade en financiële verliezen (die kunnen oplopen tot \$300.000 per uur) te voorkomen \autocite{ITIC2024}.
 
 \section{Corosync: De communicatielaag}
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=0.9\textwidth]{pacemaker.jpg} 
+    \caption{De architecturale gelaagdheid van de clusterstack, met Corosync als fundament voor de communicatie tussen de hardware nodes \autocite{John2017}.}
+    \label{fig:ha_stack_overview}
+\end{figure}
+
 Corosync vormt de fundamentele communicatielaag van de High Availability-cluster en is een onmisbare daemon voor het functioneren van de gehele stack. Het fungeert als een lidmaatschapsservice die verantwoordelijk is voor het doorgeven van statusberichten tussen de verschillende nodes via het netwerk. Door middel van een heartbeat-mechanisme bewaakt Corosync continu de aanwezigheid van elke node; zodra een node stopt met reageren, wordt dit onmiddellijk gedetecteerd en wordt het lidmaatschap van de cluster bijgewerkt zodat alle overgebleven nodes een eenduidig beeld hebben van de actuele status \autocite{Cubepath2026, Oracle}. Naast deze statusbewaking biedt Corosync ook messaging-mogelijkheden voor applicaties die over meerdere nodes heen moeten coördineren en statusinformatie moeten uitwisselen \autocite{RedHat}. 
 \medskip
 
@@ -103,7 +118,7 @@ Binnen de implementatie van fencing kan een onderscheid worden gemaakt in de man
 
 \begin{figure}[H]
     \centering
-    \includegraphics[width=0.8\textwidth]{stonith-diagram}
+    \includegraphics[width=1\textwidth]{stonith-diagram}
     \caption[STONITH: Fysieke Node Fencing]{STONITH: Fysieke Node Fencing in High-Availability Clusters. Het diagram toont hoe Node B via een IPMI-commando de stroomtoevoer van Node A onderbreekt (BMC) om een split-brain scenario te voorkomen voordat de gedeelde opslag veilig wordt overgenomen \autocite{Layrs2026}.}
     \label{fig:stonith}
 \end{figure}
@@ -115,7 +130,7 @@ Waar fencing de fysieke uitvoering van de isolatie verzorgt, fungeert quorum als
 
 \begin{figure}[H]
     \centering
-    \includegraphics[width=0.8\textwidth]{quorum-diagram}
+    \includegraphics[width=1\textwidth]{quorum-diagram}
     \caption[Visualisatie van quorum-gebaseerde split-brain preventie]{Visualisatie van quorum-gebaseerde split-brain preventie in een 5-node cluster. Enkel de partitie met de meerderheid (3 stemmen) kan een leider verkiezen en schrijfbewerkingen accepteren, terwijl de minderheidspartitie overgaat op 'Read-Only' modus om conflicten te vermijden \autocite{Layrs2026}.}
     \label{fig:quorum}
 \end{figure}

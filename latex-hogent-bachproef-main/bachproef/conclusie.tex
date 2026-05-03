@@ -14,5 +14,133 @@
 % Heeft het onderzoek geleid tot nieuwe vragen die uitnodigen tot verder 
 %onderzoek?
 
-\lipsum[76-80]
+In dit hoofdstuk worden de resultaten van de uitgevoerde metingen gepresenteerd en geanalyseerd om een antwoord te bieden op de hoofdonderzoeksvraag: hoe een betaalbare Active-Passive HA-omgeving geoptimaliseerd kan worden om de Recovery Time Objective (RTO) te minimaliseren. De focus ligt op de kwantitatieve vergelijking tussen de standaardconfiguratie en de hoogwaardige, geoptimaliseerde omgeving.
+\medskip
 
+Om de nauwkeurigheid van de metingen te waarborgen, werd gebruikgemaakt van het in de methodologie beschreven monitoringscript met een polling-interval van 100 ms, in combinatie met interne logs. Elke respons werd voorzien van een timestamp. De RTO werd vervolgens berekend als de totale tijd tussen het laatste succesvolle ‘200 OK’-bericht en het eerste succesvolle herstel na het incident. Dit stelt ons in staat om de downtime te meten zoals een eindgebruiker die ervaart, waarbij elke seconde aan beschikbaarheidsverlies correct in kaart wordt gebracht.
+
+\subsection{De Kwantitatieve Nulmeting}
+De nulmeting diende om de prestaties van een standaard RHEL-cluster binnen de Azure-omgeving vast te stellen. Hoewel de componenten Corosync en Pacemaker functioneel correct reageerden, brachten deze metingen een kritiek probleem aan het licht dat in dit onderzoek wordt gedefinieerd als de 'Cloud Gap'.
+
+\subsubsection{Resultaten Baseline-metingen}
+In de onderstaande tabel worden de gemiddelde hersteltijden weergegeven voor de drie gedefinieerde scenario's onder standaardomstandigheden.
+
+\begin{table}[H]
+    \centering
+    \begin{tabular}{|l|l|l|l|}
+        \hline
+        \textbf{Scenario} & \textbf{Software Herstel} & \textbf{RTO Script} & \textbf{Status} \\ \hline
+        1. Service-level failure & 1,0s - 2,0s & 10,8s & Succes \\ \hline
+        2. Netwerkisolatie (Split-brain) & 3,8s & Oneindig & Kritiek \\ \hline
+        3. Node-level failure (Harde crash) & 6,5s & Oneindig & Kritiek \\ \hline
+    \end{tabular}
+    \caption{Resultaten van de nulmeting}
+\end{table}
+
+\subsubsection{Analyse van de Baseline}
+Uit de verzamelde data kunnen de volgende conclusies worden getrokken:
+
+\begin{itemize}
+    \item \textbf{Software-efficiëntie vs. Gebruikerservaring}: In het geval van een Service-level failure herstelde Pacemaker de Apache-dienst lokaal binnen 2 seconden. De eindgebruiker ondervond echter een downtime van 10,8 seconden. Dit verschil wordt veroorzaakt door de standaard Linux TCP-timeouts en de conservatieve monitor-intervals van de resource.
+    \item \textbf{De 'Cloud Gap'}: Bij scenario 2 en 3 trad een fundamenteel falen op. Hoewel Pacemaker de resources succesvol gemigreerd had naar de secundaire node, bleef de applicatie onbereikbaar voor de monitor. Dit bevestigt dat de Azure Load Balancer niet tijdig op de hoogte was van de verschuiving door de standaard Health Probe en Network Security Group instellingen.
+    \item \textbf{Infrastructuurblokkade}: Zonder de configuratie van Floating IP en de loopback-interface weigerde de gezonde node het verkeer, wat de downtime theoretisch oneindig maakte voor de client.
+\end{itemize}
+
+\subsection{Resultaten na Parameter-optimalisatie}
+Na het identificeren van de knelpunten in de baseline, is de omgeving stapsgewijs geoptimaliseerd volgens de methodiek beschreven in fase 4. De resultaten tonen aan dat door gerichte aanpassingen op zowel OS- als infrastructuurniveau de RTO drastisch gereduceerd kan worden.
+
+\subsubsection{Scenario 1: Service-level failure}
+Dit scenario simuleert een falende httpd-daemon op de actieve node, waarbij de onderliggende virtuele machine operationeel blijft.
+
+\begin{table}[H]
+    \centering
+    \begin{tabular}{|l|l|}
+        \hline
+        \textbf{Run} & \textbf{Gemeten RTO (seconden)} \\ \hline
+        Run 1 & 1,3s \\ \hline
+        Run 2 & 0,7s \\ \hline
+        Run 3 & 2,0s \\ \hline
+        \textbf{Gemiddelde} & \textbf{1,33s} \\ \hline
+    \end{tabular}
+    \caption{Meetresultaten Scenario 1 na optimalisatie}
+\end{table}
+
+De RTO is in dit scenario gereduceerd van 10,8s naar gemiddeld 1,33 seconde, wat neerkomt op een verbetering van circa 88\%.
+
+\subsubsection{Scenario 2: Netwerkisolatie (Split-brain)}
+Dit scenario simuleert een onderbreking van het heartbeat-verkeer tussen de nodes, wat de quorum-logica en het fencing-mechanisme activeert.
+
+\begin{table}[H]
+    \centering
+    \begin{tabular}{|l|l|}
+        \hline
+        \textbf{Run} & \textbf{Gemeten RTO (seconden)} \\ \hline
+        Run 1 & 3,0s \\ \hline
+        Run 2 & 3,3s \\ \hline
+        Run 3 & 3,8s \\ \hline
+        \textbf{Gemiddelde} & \textbf{3,37s} \\ \hline
+    \end{tabular}
+    \caption{Meetresultaten Scenario 2 na optimalisatie}
+\end{table}
+
+De succesvolle afhandeling van dit scenario met een gemiddelde RTO van 3,37 seconden markeert het herstel van de voorheen onbepaalde downtime tijdens de nulmeting.
+
+\subsubsection{Scenario 3: Node-level failure (Harde crash)}
+In dit scenario wordt een abrupte stroomonderbreking gesimuleerd door de actieve virtuele machine via de Azure Portal abrupt uit te schakelen.
+
+\begin{table}[H]
+    \centering
+    \begin{tabular}{|l|l|}
+        \hline
+        \textbf{Run} & \textbf{Gemeten RTO (seconden)} \\ \hline
+        Run 1 & 2,3s \\ \hline
+        Run 2 & 1,8s \\ \hline
+        Run 3 & 2,0s \\ \hline
+        \textbf{Gemiddelde} & \textbf{2,03s} \\ \hline
+    \end{tabular}
+    \caption{Meetresultaten Scenario 3 na optimalisatie}
+\end{table}
+
+De gemiddelde RTO van 2,03 seconden bij een volledige node-crash is een opmerkelijk resultaat, aangezien dit sneller is dan de gecontroleerde software-stop in Scenario 2.
+
+\subsection{Comparatieve Analyse}
+De onderstaande tabel vat het verschil samen tussen de initiële baseline en de uiteindelijke geoptimaliseerde omgeving.
+
+\begin{table}[H]
+    \centering
+    \begin{tabular}{|l|l|l|l|}
+        \hline
+        \textbf{Scenario} & \textbf{RTO Baseline} & \textbf{RTO Geoptimaliseerd} & \textbf{Verbetering} \\ \hline
+        1. Service-level failure & 10,8s & 1,33s & 87,7\% \\ \hline
+        2. Netwerkisolatie & Oneindig & 3,37s & >99\% \\ \hline
+        3. Node-level failure & Oneindig & 2,03s & >99\% \\ \hline
+    \end{tabular}
+    \caption{Vergelijking RTO voor en na optimalisatie}
+\end{table}
+
+De drastische reductie van de RTO in alle scenario's is het resultaat van een optimalisatie over de gehele technologiestack. De behaalde resultaten kunnen worden gelinkt aan drie overkoepelende pijlers:
+
+\begin{itemize}
+    \item \textbf{Agressieve Foutdetectie en Monitoring}: De kern van de snelheidswinst ligt bij het minimaliseren van detectie-latencies. Op clusterniveau zorgde de tuning van Corosync (token naar 500ms) voor een bijna onmiddellijke consensus bij node-uitval, terwijl op resourceniveau het verkorte monitor-interval (2s) de reactietijd bij service-fouten strikt begrensde. De metingen tonen aan dat een abrupte crash (Scenario 3) sneller herstelt dan een gecontroleerde stop, omdat de cluster onmiddellijk overgaat tot failover zonder te wachten op tijdrovende graceful shutdown-processen.
+    \item \textbf{Eliminatie van de Cloud Gap}: Het kritieke falen uit de nulmeting werd opgelost door de Azure-infrastructuur naadloos te laten communiceren met het OS. De implementatie van Floating IP in combinatie met de loopback-interface op de nodes bleek de doorslaggevende factor. Hierdoor herkent de secundaire node het verkeer van de Load Balancer onmiddellijk na de migratie. De consistentie tussen de testruns bewijst dat de verscherpte Azure Health Probes de theoretische ondergrens van hersteltijd in een publieke cloudomgeving benaderen.
+    \item \textbf{Netwerkstack-responsiviteit}: De aanpassing van de Linux TCP-parameters speelde een faciliterende rol voor de eindgebruikerservaring. Door de stack te dwingen sneller op te geven bij onbereikbare verbindingen, kon de monitor-client agressiever herverbinden. Dit zorgde ervoor dat de applicatielaag de herstelde beschikbaarheid vrijwel direct oppikte, ongeacht of het herstel lokaal of via een failover naar een andere node plaatsvond.
+\end{itemize}
+
+\section{Algemene Conclusie en Reflectie}
+
+\subsection{Antwoord op de onderzoeksvraag}
+Dit onderzoek toont aan dat een betaalbare Active-Passive High Availability webomgeving op basis van Pacemaker en Corosync aanzienlijk geoptimaliseerd kan worden voor de Azure-cloud. De hoofdonderzoeksvraag kan positief beantwoord worden: door een integrale afstelling van de cluster-parameters, de Linux TCP-stack en de Azure-specifieke netwerkconfiguratie, kan de Recovery Time Objective (RTO) worden geminimaliseerd tot gemiddeld 1,3 tot 3,4 seconden. Dit is een reductie van meer dan 90\% ten opzichte van de standaardinstellingen en elimineert de kritieke downtime die optreedt bij een niet-geoptimaliseerde cloud-omgeving.
+\medskip
+
+De meerwaarde van dit onderzoek voor het vakgebied en de doelgroep ligt in de overbrugging van de 'Cloud Gap'. Waar traditionele HA-architecturen vaak uitgaan van lokale netwerken, biedt dit werk een concreet sjabloon voor Azure-implementaties. De introductie van Managed Identities voor STONITH verhoogt niet alleen de veiligheid, maar verlaagt ook de operationele complexiteit voor systeembeheerders door het elimineren van credential management.
+
+\subsection{Kritische Reflectie}
+De behaalde resultaten overtroffen de initiële verwachtingen, specifiek de vaststelling dat een abrupte Node-level failure sneller herstelt dan een gecontroleerde shutdown. Ook dit benadrukt de efficiëntie van de agressieve Corosync-parameters. 
+
+Er moet echter kritisch worden opgemerkt dat deze extreme optimalisaties een trade-off met zich meebrengen:
+\begin{itemize}
+    \item \textbf{False Positives}: De zeer lage token-timeout van 500ms vereist een uiterst stabiel onderliggend netwerk. In een zwaar belaste of onstabiele cloud-regio zou dit kunnen leiden tot onterechte fencing-acties.
+    \item \textbf{Resourcebelasting}: Het monitor-interval van 2 seconden genereert continue belasting op de nodes en de Load Balancer. Voor een eenvoudige webserver is dit verwaarloosbaar, maar voor zware database-applicaties moet dit interval zorgvuldig worden afgewogen.
+\end{itemize}
+
+Dit onderzoek opende nieuwe perspectieven op de schaalbaarheid van high available cloud-architecturen. Hoewel de RTO voor een 2-node cluster tot het minimum is teruggebracht, vormt de interactie tussen Azure Health Probes en grotere N-node clusters een interessant gebied voor verder onderzoek.

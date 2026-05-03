@@ -32,16 +32,16 @@ In dit hoofdstuk wordt de procesmatige aanpak van het onderzoek toegelicht. Het 
 De eerste fase van dit onderzoek is gericht op het opzetten van een stabiele en representatieve testomgeving binnen de Azure cloud-infrastructuur van oXya. Deze fase vormt de basis voor alle opeenvolgende metingen; zonder een correct geconfigureerde basisopstelling zouden de resultaten van de RTO-optimalisatie niet geldig zijn.
 \medskip
 
-We starten met het opzetten van een Active-Passive High Availability cluster die voldoet aan enterprise-standaarden. Concreet zijn hiervoor twee virtuele machines met Red Hat Enterprise Linux (RHEL) 9.4 geprovisioneerd binnen een specifieke Resource Group in de Azure Portal. De keuze voor Azure als platform komt voor uit de situatie bij het stagebedrijf. Daarnaast biedt het de beste oplossing voor de specifieke uitdagingen die cloud-netwerken met zich meebrengen voor cluster-heartbeats.
+We starten met het opzetten van een Active-Passive High Availability cluster die voldoet aan enterprise-standaarden. Concreet zijn hiervoor twee virtuele machines met Red Hat Enterprise Linux (RHEL) 9.4 geprovisioneerd binnen een specifieke Resource Group in de Azure Portal. De keuze voor Azure als platform komt voor uit de situatie bij het stagebedrijf. Daarnaast biedt het de beste oplossing voor de specifieke uitdagingen die cloud-netwerken met zich meebrengen voor cluster-heartbeats. 
 \medskip
 
 Tijdens de configuratie doorlopen we de volgende stappen:
 
 \begin{itemize}
-    \item Netwerk en Hostname Resolution: Om de afhankelijkheid van externe diensten te minimaliseren en een Single Point Of Failure op DNS-niveau te vermijden, is de hostname resolution geconfigureerd via het /etc/hosts bestand op beide nodes.
-    \item Installatie van de HA-Stack: Met behulp van de officiële RHEL-repositories is de High Availability Add-On geïnstalleerd, bestaande uit Pacemaker, Corosync en de bijhorende tool pcs \autocite{RedHat}.
-    \item Resource Configuratie: De Apache-service (httpd) is ingericht als de primaire cluster-resource. Hierbij is expliciet ingesteld dat systemd de service niet mag beheren. Dit beheer ligt volledig bij de Pacemaker-daemon om de statusintegriteit te waarborgen.
-    \item Content Synchronisatie: Op beide nodes is een identieke index.html geplaatst in de directory /var/www/html om consistentie bij failover te garanderen tijdens de initiële tests.
+    \item \textbf{Netwerk en Hostname Resolution}: Om de afhankelijkheid van externe diensten te minimaliseren en een Single Point Of Failure op DNS-niveau te vermijden, is de hostname resolution geconfigureerd via het /etc/hosts bestand op beide nodes.
+    \item \textbf{Installatie van de HA-Stack}: Met behulp van de officiële RHEL-repositories is de High Availability Add-On geïnstalleerd, bestaande uit Pacemaker, Corosync en de bijhorende tool pcs \autocite{RedHat}.
+    \item \textbf{Resource Configuratie}: De Apache-service (httpd) is ingericht als de primaire cluster-resource. Hierbij is expliciet ingesteld dat systemd de service niet mag beheren. Dit beheer ligt volledig bij de Pacemaker-daemon om de statusintegriteit te waarborgen.
+    \item \textbf{Content Synchronisatie}: Op beide nodes is een identieke index.html geplaatst in de directory /var/www/html om consistentie bij failover te garanderen tijdens de initiële tests.
 \end{itemize}
 
 De configuratie is gebaseerd op de High-Availability Guide van Microsoft voor RHEL op Pacemaker \autocite{Microsoft2026}. Er is bewust gekozen voor een standaardconfiguratie om een representatief beginpunt te creëren. Dit laat ons toe om in latere fasen op een correcte manier het verschil tussen een standaardinstallatie en een geoptimaliseerde configuratie aan te tonen. 
@@ -56,10 +56,10 @@ Vanaf hier verschuift de focus van de standaardinstallatie naar de beveiliging v
 Om dit te realiseren worden volgende stappen uitgevoerd:
 
 \begin{itemize}
-    \item Configuratie van de Azure Fence Agent: Er is gekozen voor de implementatie van STONITH (Shoot The Other Node In The Head) via de fence\_azure\_arm agent. Dit mechanisme stelt de cluster in staat om een falende node fysiek te isoleren door deze via de Azure-omgeving uit te schakelen of te herstarten.
-    \item Identiteitsbeheer via Managed Identities: Voor de authenticatie van de fencing-agent is gebruikgemaakt van System-assigned Managed Identities. Elke virtuele machine in de cluster heeft een eigen identiteit gekregen binnen Azure Active Directory (Microsoft Entra ID). Dit vervangt de traditionele methode met Service Principals, waardoor er geen gevoelige credentials (zoals client secrets) lokaal op de nodes opgeslagen hoeven te worden.
-    \item Rechtenbeheer en Custom Roles: Via de Azure CLI is een specifieke custom RBAC-rol (Role-Based Access Control) gedefinieerd en toegewezen aan de Managed Identities. Deze rol is strikt beperkt tot de noodzakelijke acties (PowerOff, Start, Restart) op de specifieke VM's binnen de Resource Group, volgens het principe van least privilege.
-    \item Quorum-afstemming: Binnen de Corosync-configuratie zijn de quorum instellingen geoptimaliseerd voor een 2-node omgeving.  Dit bepaalt hoe de cluster reageert als de onderlinge verbinding wegvalt. Cruciaal hierbij is dat het fencing-device beslist of de quorum-status behouden blijft.
+    \item \textbf{Configuratie van de Azure Fence Agent}: Er is gekozen voor de implementatie van STONITH (Shoot The Other Node In The Head) via de fence\_azure\_arm agent. Dit mechanisme stelt de cluster in staat om een falende node fysiek te isoleren door deze via de Azure-omgeving uit te schakelen of te herstarten.
+    \item \textbf{Identiteitsbeheer via Managed Identities}: Voor de authenticatie van de fencing-agent is gebruikgemaakt van System-assigned Managed Identities. Elke virtuele machine in de cluster heeft een eigen identiteit gekregen binnen Azure Active Directory (Microsoft Entra ID). Dit vervangt de traditionele methode met Service Principals, waardoor er geen gevoelige credentials (zoals client secrets) lokaal op de nodes opgeslagen hoeven te worden.
+    \item \textbf{Rechtenbeheer en Custom Roles}: Via de Azure CLI is een specifieke custom RBAC-rol (Role-Based Access Control) gedefinieerd en toegewezen aan de Managed Identities. Deze rol is strikt beperkt tot de noodzakelijke acties (PowerOff, Start, Restart) op de specifieke VM's binnen de Resource Group, volgens het principe van least privilege.
+    \item \textbf{Quorum-afstemming}: Binnen de Corosync-configuratie zijn de quorum instellingen geoptimaliseerd voor een 2-node omgeving.  Dit bepaalt hoe de cluster reageert als de onderlinge verbinding wegvalt. Cruciaal hierbij is dat het fencing-device beslist of de quorum-status behouden blijft.
 \end{itemize}
 
 De keuze voor Managed Identities boven Service Principals is een weloverwogen stap richting de onderzoeksvraag. Managed Identities nemen het administratieve beheer van certificaten of wachtwoorden weg, wat de complexiteit en de kans op menselijke fouten aanzienlijk verkleint \autocite{Oasis2025}. Bovendien is er gekozen voor de Azure Fence Agent in plaats van SBD (Storage Based Death) met iSCSI, omdat dit een meer cloud-geoptimaliseerde benadering is \autocite{Microsoft2026}.
@@ -74,17 +74,17 @@ Hier wordt onderzocht hoe de cluster presteert met de standaardinstellingen; de 
 Hiervoor worden drie foutscenario's toegepast:
 
 \begin{itemize}
-    \item Service-level failure: De httpd-daemon wordt handmatig gestopt op de actieve node, zonder de VM uit te schakelen. Dit test hoe snel Pacemaker een resource-fout detecteert en lokaal herstelt op dezelfde node.
-    \item Netwerkisolatie (Split-brain): Het blokkeren van het heartbeat-verkeer tussen de nodes. Dit test de quorum-logica en het vermogen van de cluster om via fencing een node-wissel veilig af te handelen.
-    \item Node-level failure (Harde crash): De actieve VM wordt via de Azure Portal abrupt uitgeschakeld. Dit simuleert een totale hardware-uitval en test de reactiesnelheid van Corosync om de overgebleven node te activeren.
+    \item \textbf{Service-level failure}: De httpd-daemon wordt handmatig gestopt op de actieve node, zonder de VM uit te schakelen. Dit test hoe snel Pacemaker een resource-fout detecteert en lokaal herstelt op dezelfde node.
+    \item \textbf{Netwerkisolatie (Split-brain)}: Het blokkeren van het heartbeat-verkeer tussen de nodes. Dit test de quorum-logica en het vermogen van de cluster om via fencing een node-wissel veilig af te handelen.
+    \item \textbf{Node-level failure (Harde crash)}: De actieve VM wordt via de Azure Portal abrupt uitgeschakeld. Dit simuleert een totale hardware-uitval en test de reactiesnelheid van Corosync om de overgebleven node te activeren.
 \end{itemize}
 
 Om de RTO-waarden nauwkeurig te kunnen meten, wordt er niet enkel afgegaan op de interne systeemlogs, maar wordt er ook gebruikgemaakt van een extern monitoringscript dat de beschikbaarheid van de webapplicatie controleert.
 
 \begin{itemize}
-    \item HTTP Polling: Het script verstuurt elke 100 milliseconden een request naar het IP-adres van de cluster (of de Load Balancer).
-    \item Dataverzameling: Elke respons (of het uitblijven daarvan) wordt gelogd met een timestamp. De RTO wordt berekend als de totale tijd tussen het laatste succesvolle '200 OK' bericht en het eerste succesvolle herstel na het incident.
-    \item Correlatie: Deze externe data wordt vergeleken met de Pacemaker logs (journalctl of /var/log/cluster/pacemaker.log) om precies te pinpointen waar de meeste tijd verloren gaat.
+    \item \textbf{HTTP Polling}: Het script verstuurt elke 100 milliseconden een request naar het IP-adres van de cluster (of de Load Balancer).
+    \item \textbf{Dataverzameling}: Elke respons (of het uitblijven daarvan) wordt gelogd met een timestamp. De RTO wordt berekend als de totale tijd tussen het laatste succesvolle '200 OK' bericht en het eerste succesvolle herstel na het incident.
+    \item \textbf{Correlatie}: Deze externe data wordt vergeleken met de Pacemaker logs (journalctl of /var/log/cluster/pacemaker.log) om precies te pinpointen waar de meeste tijd verloren gaat.
 \end{itemize}
 
 Door te meten met een interval van 100ms wordt een grote hoeveelheid data verkregen, wat noodzakelijk is wanneer er gestreefd wordt naar een RTO van slechts enkele seconden. De keuze voor HTTP polling garandeert dat de downtime gemeten wordt zoals een eindgebruiker die zou ervaren.
@@ -98,9 +98,11 @@ De vierde en finale fase van het onderzoek is gericht op het stapsgewijs reducer
 
 Het hoofddoel is uiteraard het bereiken van de laagst mogelijke RTO. De uitvoering hiervan verloopt via een iteratief proces waarbij parameters op drie niveaus worden aangepast:
 \begin{itemize}
-    \item Corosync (Foutdetectie): De token timeout en consensus waarden worden verlaagd naar agressievere instellingen om de tijd tussen een falende node en de detectie ervan te minimaliseren.
-    \item Pacemaker (Resource Management): Er wordt geëxperimenteerd met resource-stickiness en specifieke monitor-intervals voor de Apache-resource. Hiermee wordt voorkomen dat resources onnodig migreren (wat extra downtime veroorzaakt) en wordt de reactiesnelheid op service-fouten verhoogd.
-    \item Linux TCP-stack (Netwerklaag): De parameter net.ipv4.tcp\_retries2 en de bijhorende parameter net.ipv4.tcp\_syn\_retries worden substantieel verlaagd. Dit is cruciaal om te voorkomen dat de applicatielaag minutenlang blijft wachten op TCP-timeouts tijdens een failover.
+    \item \textbf{Corosync (Foutdetectie)}: De token timeout en consensus waarden worden verlaagd naar agressievere instellingen om de tijd tussen een falende node en de detectie ervan te minimaliseren.
+    \item \textbf{Pacemaker (Resource Management)}: Er wordt geëxperimenteerd met resource-stickiness en specifieke monitor-intervals voor de Apache-resource. Hiermee wordt voorkomen dat resources onnodig migreren (wat extra downtime veroorzaakt) en wordt de reactiesnelheid op service-fouten verhoogd.
+    \item \textbf{Linux TCP-stack (Netwerklaag)}: De parameter net.ipv4.tcp\_retries2 en de bijhorende parameter net.ipv4.tcp\_syn\_retries worden substantieel verlaagd. Dit is cruciaal om te voorkomen dat de applicatielaag minutenlang blijft wachten op TCP-timeouts tijdens een failover.
+    \item \textbf{Azure Infrastructure Tuning (Wolk-integratie)}: Het optimaliseren van de Load Balancer Health Probes en de Network Security Groups (NSG). Door de 'Health Threshold' en 'Interval' te minimaliseren, wordt de communicatiekloof tussen de virtuele machines en de cloud-infrastructuur gedicht, wat essentieel is voor een snelle verkeersomleiding.
+    \item \textbf{Interface \& Routing (Floating IP/DSR)}: Om Direct Server Return (DSR) binnen Azure te garanderen, wordt de Azure Load Balancer geconfigureerd met Floating IP. Op OS-niveau wordt een loopback geconfigureerd die het Frontend IP-adres van de Load Balancer bevat. Dit is doorslaggevend om te voorkomen dat de netwerkstack van de secundaire node inkomend verkeer weigert na een failover, wat de downtime bij een nulmeting onbepaald maakt.
 \end{itemize}
 
 Na elke significante parameterwijziging worden de drie testscenario's uit de vorige fase opnieuw uitgevoerd. Deze manier van werken staat toe dat de impact van individuele parameters goed onderzocht kan worden. Door niet alle wijzigingen tegelijk door te voeren, kan exact worden bepaald welke optimalisatie een bijdrage levert en welke niet. 

@@ -44,4 +44,20 @@
 
 \chapter*{\IfLanguageName{dutch}{Samenvatting}{Abstract}}
 
-\lipsum[1-4]
+In de huidige gedigitaliseerde economie is de constante beschikbaarheid van vitale webapplicaties cruciaal voor de continuïteit van organisaties. Ongeplande downtime resulteert niet alleen in aanzienlijke financiële verliezen, die voor grote ondernemingen kunnen oplopen tot boven de \$300.000 per uur, maar tast ook de reputatie van organisaties aan. Hoewel open-source technologieën zoals Pacemaker en Corosync op Red Hat Enterprise Linux (RHEL) een robuuste basis bieden voor High Availability (HA), blijkt de standaardconfiguratie in een publieke cloudomgeving vaak insufficiënt om te voldoen aan strikte eisen voor de \textit{Recovery Time Objective} (RTO).
+\medskip
+
+Deze bachelorproef onderzoekt hoe een betaalbare Active-Passive HA-webomgeving geoptimaliseerd kan worden om de hersteltijd bij serveruitval tot een minimum te reduceren. Het onderzoek streeft ernaar om door middel van een nauwkeurige afstelling van parameters op verschillende niveaus van de architectuur een hersteltijd van slechts enkele seconden te realiseren.
+\medskip
+
+Het onderzoek werd uitgevoerd aan de hand van vier methodologische fasen:
+\begin{itemize}
+    \item \textbf{Fase 1 \& 2}: De opzet van een baseline Proof-of-Concept en de implementatie van robuuste fencing-mechanismen (STONITH) via Azure Managed Identities om de data-integriteit te waarborgen.
+    \item \textbf{Fase 3}: Het uitvoeren van een kwantitatieve nulmeting in drie kritieke scenario's: service-level failure, netwerkisolatie (split-brain) en een harde node-crash.
+    \item \textbf{Fase 4}: De stapsgewijze parameter-optimalisatie op het niveau van Corosync-foutdetectie, Pacemaker resource-parameters, de Linux TCP-stack en de Azure-netwerklaag.
+\end{itemize}
+
+De resultaten tonen aan dat een geïntegreerde optimalisatie de RTO drastisch reduceert. Waar de nulmeting bij node-uitval leidde tot een falende failover, werd na optimalisatie een hersteltijd van gemiddeld 1,3 tot 3,4 seconden behaald. Dit resultaat betekent een verbetering van meer dan 90\% ten opzichte van de standaardinstellingen. De belangrijkste pijlers voor dit succes waren het verkorten van monitor-intervals naar 2 seconden, het verlagen van de Corosync-token naar 500ms en het dichten van de 'Cloud Gap' middels Floating IP en loopback-configuraties voor Direct Server Return.
+\medskip
+
+De conclusie van deze bachelorproef biedt een blueprint om hoogwaardige HA-oplossingen in de cloud te implementeren. Hoewel de agressieve parameters een verhoogd risico op false positives met zich meebrengen, bewijst dit werk dat een minimale RTO haalbaar is zonder concessies te doen aan de data-integriteit.

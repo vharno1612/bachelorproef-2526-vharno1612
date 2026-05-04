@@ -29,7 +29,7 @@
 In dit hoofdstuk wordt de procesmatige aanpak van het onderzoek toegelicht. Het onderzoek is opgedeeld in vier logische fasen, waarbij de focus verschuift van de initiële opzet naar de kwantitatieve optimalisatie van de hersteltijd.
 
 \section{Fase 1: Opzet van de Baseline PoC}
-De eerste fase van dit onderzoek is gericht op het opzetten van een stabiele en representatieve testomgeving binnen de Azure cloud-infrastructuur van oXya. Deze fase vormt de basis voor alle opeenvolgende metingen; zonder een correct geconfigureerde basisopstelling zouden de resultaten van de RTO-optimalisatie niet geldig zijn.
+De eerste fase van dit onderzoek is gericht op het opzetten van een stabiele en representatieve testomgeving binnen de Azure cloud-infrastructuur van oXya. Deze fase vormt de basis voor alle opeenvolgende metingen: zonder een correct geconfigureerde basisopstelling zouden de resultaten van de RTO-optimalisatie niet geldig zijn.
 \medskip
 
 \subsection{Cloud-Infrastructuur en Provisioning}
@@ -86,7 +86,7 @@ Om een nauwkeurige monitoring van de resource-status mogelijk te maken, is de Ap
 Deze module stelt de Pacemaker Resource Agent in staat om via de statusurl parameter de werkelijke gezondheid van de webserver te verifiëren in plaats van enkel het proces-ID. Ten slotte is content-synchronisatie gewaarborgd door een identieke index.html op beide nodes te plaatsen, wat consistentie bij een failover garandeert.
 
 \subsection{Resultaat van Fase 1}
-Het resultaat van deze fase is een volledig operationele, alleen niet-geoptimaliseerde webstack. De cluster is in staat om via de standaardconfiguratie de actieve node te identificeren en de status van de Apache-service te bewaken binnen de Azure-omgeving bij oXya.
+Het resultaat van deze fase is een volledig operationele, maar niet-geoptimaliseerde webstack. De cluster is in staat om via de standaardconfiguratie de actieve node te identificeren en de status van de Apache-service te bewaken binnen de Azure-omgeving bij oXya.
 
 \section{Fase 2: Implementatie van Fencing en Quorum}
 Vanaf hier verschuift de focus van de standaardinstallatie naar de beveiliging van de cluster. Het hoofddoel hierbij is het waarborgen van de data-integriteit door het risico op mogelijke 'split-brain'-scenario's te elimineren. In deze fase wordt een robuust fencing-mechanisme geconfigureerd dat is afgestemd op de Azure-infrastructuur. 
@@ -139,7 +139,7 @@ Als aanvulling op de standaardfencing is de azure-events resource agent geïmple
 In tegenstelling tot de eerste fase, levert deze fase een “fencing-ready” cluster op. De omgeving kan hiermee als veilig en testbaar worden beschouwd, aangezien data-integriteit nu onder alle omstandigheden gegarandeerd kan worden door de isolatie van falende nodes.
 
 \section{Fase 3: Kwantitatieve Nulmeting}
-Hier wordt onderzocht hoe de cluster presteert met de standaardinstellingen; de baseline RTO wordt hier vastgesteld. Deze data is essentieel om later de effectiviteit van de optimalisaties te kunnen bewijzen. 
+Hier wordt onderzocht hoe de cluster presteert met de standaardinstellingen: de baseline RTO wordt hier vastgesteld. Deze data is essentieel om later de effectiviteit van de optimalisaties te kunnen bewijzen. 
 
 \subsection{Ontwikkeling van de Monitoring-tooling}
 Om de RTO-waarden nauwkeurig te kunnen meten, wordt er niet enkel afgegaan op de interne systeemlogs. Er is een extern monitoringscript ontwikkeld, rto\_monitor.sh, dat via HTTP-polling de beschikbaarheid van de webapplicatie controleert.
@@ -174,7 +174,7 @@ Het script wordt uitgevoerd op de passieve node, aangezien die op dat moment gee
         HTTP_STATUS="000"
         fi
         
-        if [ "$HTTP_STATUS" == "200" ]; then
+        if [ "$HTTP_STATUS" == "200" ] then
         echo "$TIMESTAMP,200_OK" | tee -a $LOGFILE
         else
         echo "$TIMESTAMP,FAILED_$HTTP_STATUS" | tee -a $LOGFILE
@@ -206,7 +206,7 @@ De resultaten uit de gegenereerde .csv-bestanden worden gecorreleerd met de inte
 \end{figure}
 
 \subsection{Resultaat van Fase 3}
-Deze metingen leveren een dataset van het beginpunt op; het bevat de gemiddelde hersteltijden per scenario onder standaardomstandigheden en dient als blueprint voor de optimalisatiefase.
+Deze metingen leveren een dataset van het beginpunt op: het bevat de gemiddelde hersteltijden per scenario onder standaardomstandigheden en dient als blueprint voor de optimalisatiefase.
 
 
 \section{Fase 4: Parameter-optimalisatie}

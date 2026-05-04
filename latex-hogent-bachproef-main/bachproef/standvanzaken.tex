@@ -44,7 +44,7 @@ In dit onderzoek ligt de focus op de Active-Passive opstelling. Hierbij is op el
 In een Active-Active opstelling zijn alle instances gelijktijdig actief en verdelen ze de werklast via load balancing. Dit resulteert in een maximale benutting van alle systeembronnen, maar is vanzelfsprekend aanzienlijk complexer om te configureren en gaat gepaard met hogere operationele kosten \autocite{Luca2024}.
 \medskip  
 
-Vanwege de doelstelling om een betaalbare oplossing te bieden voor KMO's en infrastructuurbedrijven, is de Active-Passive architectuur in dit onderzoek de meest logische keuze.
+Vanwege de doelstelling om een betaalbare oplossing te bieden, is de Active-Passive architectuur in dit onderzoek de meest logische keuze.
 
 \subsection{Business Continuity: RTO versus RPO}
 Bij het opstellen van een Disaster Recovery-plan zijn twee statistieken cruciaal om het succes van een HA-implementatie te meten: het Recovery Point Objective (RPO) en het Recovery Time Objective (RTO) \autocite{SIOS}.
@@ -54,7 +54,7 @@ Bij het opstellen van een Disaster Recovery-plan zijn twee statistieken cruciaal
     \item \textbf{RTO}: Dit is de kernfocus van dit onderzoek. Het definieert de maximaal acceptabele tijd waarin een applicatie na een storing weer volledig operationeel moet zijn.
 \end{itemize}
 
-Voor moderne organisaties is een lage RTO, bij voorkeur in de orde van enkele seconden, essentieel om reputatieschade en financiële verliezen (die kunnen oplopen tot \$300.000 per uur) te voorkomen \autocite{ITIC2024}.
+Voor moderne organisaties is een lage RTO, bij voorkeur in de orde van enkele seconden, essentieel om reputatieschade en financiële verliezen \autocite{ITIC2024}.
 
 \section{Corosync: De communicatielaag}
 \begin{figure}[H]
@@ -64,7 +64,7 @@ Voor moderne organisaties is een lage RTO, bij voorkeur in de orde van enkele se
     \label{fig:ha_stack_overview}
 \end{figure}
 
-Corosync vormt de fundamentele communicatielaag van de High Availability-cluster en is een onmisbare daemon voor het functioneren van de gehele stack. Het fungeert als een lidmaatschapsservice die verantwoordelijk is voor het doorgeven van statusberichten tussen de verschillende nodes via het netwerk. Door middel van een heartbeat-mechanisme bewaakt Corosync continu de aanwezigheid van elke node; zodra een node stopt met reageren, wordt dit onmiddellijk gedetecteerd en wordt het lidmaatschap van de cluster bijgewerkt zodat alle overgebleven nodes een eenduidig beeld hebben van de actuele status \autocite{Cubepath2026, Oracle}. Naast deze statusbewaking biedt Corosync ook messaging-mogelijkheden voor applicaties die over meerdere nodes heen moeten coördineren en statusinformatie moeten uitwisselen \autocite{RedHat}. 
+Corosync vormt de fundamentele communicatielaag van de High Availability-cluster en is een onmisbare daemon voor het functioneren van de gehele stack. Het fungeert als een lidmaatschapsservice die verantwoordelijk is voor het doorgeven van statusberichten tussen de verschillende nodes via het netwerk. Door middel van een heartbeat-mechanisme bewaakt Corosync continu de aanwezigheid van elke node. Zodra een node stopt met reageren, wordt dit onmiddellijk gedetecteerd en wordt het lidmaatschap van de cluster bijgewerkt zodat alle overgebleven nodes een eenduidig beeld hebben van de actuele status \autocite{Cubepath2026, Oracle}. Naast deze statusbewaking biedt Corosync ook messaging-mogelijkheden voor applicaties die over meerdere nodes heen moeten coördineren en statusinformatie moeten uitwisselen \autocite{RedHat}. 
 \medskip
 
 Een essentieel technisch kenmerk van de moderne Corosync-implementatie is het gebruik van de kronosnet-bibliotheek voor het netwerktransport. Kronosnet stelt de cluster in staat om gebruik te maken van meerdere redundante netwerkverbindingen tussen de nodes. Indien een specifiek netwerkpad faalt, zorgt deze bibliotheek voor een automatische failover naar een beschikbare link, wat de betrouwbaarheid van de onderlinge communicatie aanzienlijk verhoogt \autocite{RedHat}. Een optimale configuratie van de Corosync-parameters is dan ook noodzakelijk om de vooropgestelde Recovery Time Objective (RTO) van enkele seconden te kunnen garanderen.
@@ -102,7 +102,7 @@ In een High Availability-omgeving is de integriteit van de data vaak nog belangr
 \subsection{De werking van Fence Agents}
 Een cruciaal onderdeel van de beveiligingsarchitectuur is de fence agent (of fencing agent), een specifiek type resource agent binnen de stonith-klasse. De fence agent fungeert als een tussenlaag: hij isoleert de specifieke kennis over fencing-technologieën van de kernlogica van de cluster. Hierdoor hoeft Pacemaker zelf geen diepgaande kennis te hebben van de onderliggende hardware of protocollen.
 
-De fence agent stelt gestandaardiseerde commando's ter beschikking, zoals off en reboot, die de cluster aanroept om een node te isoleren. Pacemaker ondersteunt hierbij twee belangrijke standaarden voor deze agents \autocite{ClusterLabs}:
+De fence agent stelt gestandaardiseerde commando's ter beschikking, zoals 'off' en 'reboot', die de cluster aanroept om een node te isoleren. Pacemaker ondersteunt hierbij twee belangrijke standaarden voor deze agents \autocite{ClusterLabs}:
 \begin{itemize}
     \item \textbf{Red Hat Cluster Suite (RHCS)-stijl}: Deze agents bevinden zich doorgaans in /usr/sbin en zijn herkenbaar aan namen die beginnen met de prefix fence\_.
     \item \textbf{Linux-HA-stijl}: Deze agents maken gebruik van namen die beginnen met de prefix external/.

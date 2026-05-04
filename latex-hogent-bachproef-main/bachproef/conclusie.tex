@@ -135,9 +135,10 @@ Dit onderzoek toont aan dat een betaalbare Active-Passive High Availability webo
 De meerwaarde van dit onderzoek voor het vakgebied en de doelgroep ligt in de overbrugging van de 'Cloud Gap'. Waar traditionele HA-architecturen vaak uitgaan van lokale netwerken, biedt dit werk een concreet sjabloon voor Azure-implementaties. De introductie van Managed Identities voor STONITH verhoogt niet alleen de veiligheid, maar verlaagt ook de operationele complexiteit voor systeembeheerders door het elimineren van credential management.
 
 \subsection{Kritische Reflectie}
-De behaalde resultaten overtroffen de initiële verwachtingen, specifiek de vaststelling dat een abrupte Node-level failure sneller herstelt dan een gecontroleerde shutdown. Ook dit benadrukt de efficiëntie van de agressieve Corosync-parameters. 
+De behaalde resultaten overtroffen de initiële verwachtingen. Vooral de vaststelling dat een abrupte Node-level failure sneller herstelt dan een gecontroleerde shutdown. Ook dit benadrukt de efficiëntie van de agressieve Corosync-parameters.
+\medskip 
 
-Er moet echter kritisch worden opgemerkt dat deze extreme optimalisaties een trade-off met zich meebrengen:
+Een kritische maar noodzakelijke kanttekening bij deze extreme optimalisaties is dat ze een trade-off met zich meebrengen:
 \begin{itemize}
     \item \textbf{False Positives}: De zeer lage token-timeout van 500ms vereist een uiterst stabiel onderliggend netwerk. In een zwaar belaste of onstabiele cloud-regio zou dit kunnen leiden tot onterechte fencing-acties.
     \item \textbf{Resourcebelasting}: Het monitor-interval van 2 seconden genereert continue belasting op de nodes en de Load Balancer. Voor een eenvoudige webserver is dit verwaarloosbaar, maar voor zware database-applicaties moet dit interval zorgvuldig worden afgewogen.

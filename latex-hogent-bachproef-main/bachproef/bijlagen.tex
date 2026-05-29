@@ -1,0 +1,42 @@
+\section{\IfLanguageName{dutch}{Script}{Script}}
+\label{app:rto_script}
+
+In onderstaand codefragment wordt het volledige Bash-script weergegeven dat is ontwikkeld en gebruikt voor het uitvoeren van de kwantitatieve nulmetingen en de daaropvolgende optimalisatietests.
+
+\begin{listing}[H]
+    \begin{minted}[linenos, breaklines, tabsize=4]{bash}
+        #!/bin/bash
+        
+        # TARGET-IP is de Azure Internal Load Balancer
+        TARGET="http://172.16.0.100"
+        LOGFILE="rto_meting_scenario1_final.csv"
+        
+        echo "Start polling van $TARGET..."
+        echo "Resultaten worden weggeschreven naar $LOGFILE"
+        echo "Timestamp,HTTP_Status" | tee $LOGFILE
+        
+        # Oneindige loop
+        while true; do
+        TIMESTAMP=$(date +"%Y-%m-%d %H:%M:%S.%3N")
+        
+        # curl met een harde time-out van 1 seconde
+        HTTP_STATUS=$(curl -o /dev/null -s -w "%{http_code}" --max-time 1 $TARGET 2>/dev/null)
+        
+        # als de curl faalt (netwerk down/timeout), maken we er '000' van
+        if [ -z "$HTTP_STATUS" ]; then
+        HTTP_STATUS="000"
+        fi
+        
+        if [ "$HTTP_STATUS" == "200" ]; then
+        echo "$TIMESTAMP,200_OK" | tee -a $LOGFILE
+        else
+        echo "$TIMESTAMP,FAILED_$HTTP_STATUS" | tee -a $LOGFILE
+        fi
+        
+        # wacht 100 milliseconden
+        sleep 0.1
+        done
+    \end{minted}
+    \caption{Het volledige \texttt{rto\_monitor.sh} script.}
+    \label{lst:rto_full_script}
+\end{listing}

@@ -9,7 +9,7 @@
 In dit hoofdstuk wordt de theoretische en technologische basis van het onderzoek gedetailleerd uitgewerkt. Waar de inleiding de zakelijke noodzaak en de algemene context van een lage hersteltijd (RTO) schetste, verschuift de focus hier naar de onderliggende mechanismen van de High Availability-stack binnen een RHEL-omgeving. Er wordt achtereenvolgens stilgestaan bij de fundamentele clusterprincipes, de specifieke interactie tussen Corosync en Pacemaker, en de kritieke rol van fencing en quorum voor de data-integriteit. Deze diepgaande analyse van de huidige stand van zaken vormt het noodzakelijke fundament voor de praktische testscenario's en de stapsgewijze parameter-optimalisaties die in hoofdstuk~\ref{ch:methodologie} centraal staan.
 
 \section{Concepten van High Availability en Business Continuity}
-In de moderne IT-architectuur is de tolerantie voor downtime nagenoeg nihil. High Availability (HA) vormt de ruggengraat van strategieën voor bedrijfscontinuïteit, waarbij het doel is om diensten operationeel te houden ondanks het onvermijdelijke falen van hardware- of softwarecomponenten.
+In de moderne IT-architectuur is de tolerantie voor downtime zo goed als nihil. High Availability (HA) vormt de ruggengraat van strategieën voor bedrijfscontinuïteit, waarbij het doel is om diensten operationeel te houden ondanks het onvermijdelijke falen van hardware- of softwarecomponenten.
 
 \subsection{Definitie en Kernprincipes van High Availability}
 High Availability verwijst naar het ontwerp en de implementatie van IT-systemen die consistent operationeel blijven met een minimale hoeveelheid downtime. Waar een standaard systeem kwetsbaar is voor een Single Point of Failure (SPOF), elimineert een HA-omgeving deze risico's door middel van drie fundamentele principes \autocite{Luca2024}:
@@ -24,7 +24,7 @@ High Availability verwijst naar het ontwerp en de implementatie van IT-systemen 
 Een HA-cluster, ook wel een failover cluster genoemd, is een groep samenwerkende servers (nodes) die naar de buitenwereld toe fungeren als één enkel, uniform systeem. Deze nodes delen vaak dezelfde missie en kunnen dezelfde werklasten draaien als het primaire systeem dat zij ondersteunen.
 \medskip 
 
-Om de status van de cluster te bewaken, wordt gebruikgemaakt van een 'heartbeat'-mechanisme. Dit programma verstuurt datapakketten tussen de machines om te bevestigen dat elke node correct functioneert. Wanneer een heartbeat wegvalt, initieert de cluster softwarematig de failover-procedure om downtime te elimineren \autocite{Cisco}.
+Om de status van de cluster te bewaken, wordt gebruikgemaakt van een 'heartbeat'-mechanisme. Dit programma verstuurt datapakketten tussen de machines om te bevestigen dat elke node correct functioneert. Wanneer een heartbeat wegvalt, evalueert de clustersoftware de status van de nodes om een veilige failover-procedure te starten. Hierdoor wordt de uiteindelijke downtime tot een minimum beperkt \autocite{Cisco}.
 
 \subsection{HA-Architecturen: Active-Passive versus Active-Active}
 Binnen de clustering-technologie zijn er twee dominante architecturen, elk met hun eigen voor- en nadelen.
@@ -54,7 +54,7 @@ Bij het opstellen van een Disaster Recovery-plan zijn twee statistieken cruciaal
     \item \textbf{RTO}: Dit is de kernfocus van dit onderzoek. Het definieert de maximaal acceptabele tijd waarin een applicatie na een storing weer volledig operationeel moet zijn.
 \end{itemize}
 
-Voor moderne organisaties is een lage RTO, bij voorkeur in de orde van enkele seconden, essentieel om reputatieschade en financiële verliezen \autocite{ITIC2024}.
+Voor moderne organisaties is de acceptabele RTO sterk afhankelijk van de specifieke bedrijfscontext, waarbij de kosten voor het minimaliseren van de hersteltijd direct gekoppeld zijn aan de potentiële financiële schade bij downtime. Hoewel voor kritieke enterprise-omgevingen een RTO van enkele seconden cruciaal is om reputatieschade te voorkomen, vereist dit een zorgvuldige afweging tussen de investeringskosten in high-availability infrastructuur en de aanvaardbare downtime \autocite{ITIC2024}.
 
 \section{Corosync: De communicatielaag}
 \begin{figure}[H]
@@ -94,7 +94,7 @@ De primaire tool binnen deze stack is pcs (Pacemaker/Corosync configuration syst
 Voor een visueel overzicht biedt de stack de pcsd Web UI, waarmee beheerders meerdere clusters tegelijkertijd kunnen monitoren en beheren via de browser. Via deze grafische interface kunnen resources geconfigureerd worden, statusupdates in real-time worden gevolgd en nieuwe nodes eenvoudig worden toegevoegd \autocite{RedHat2}.
 
 \subsection{Aanvullende componenten en afbakening}
-Hoewel de stack kan worden uitgebreid met de Resilient Storage Add-On (zoals GFS2 en lvmlockd) voor gedeelde opslag of HAProxy voor load balancing op applicatieniveau, vallen deze buiten de directe scope van dit onderzoek \autocite{RedHat}. Binnen de specifieke Active-Passive focus blijven deze supplementen ondergeschikt aan het optimaliseren van de kernparameters binnen Pacemaker. De prioriteit ligt hierbij op het behalen van de vooropgestelde RTO-doelen via de primaire beheertools.
+Hoewel de stack kan worden uitgebreid met de Resilient Storage Add-On (zoals GFS2 en lvmlockd) voor gedeelde opslag, valt deze buiten de directe scope van dit onderzoek \autocite{RedHat}. Binnen de specifieke Active-Passive focus blijven deze supplementen ondergeschikt aan het optimaliseren van de kernparameters binnen Pacemaker. De prioriteit ligt hierbij op het behalen van de vooropgestelde RTO-doelen via de primaire beheertools.
 
 \section{Data-integriteit en Cluster-beveiliging: Fencing en Quorum}
 In een High Availability-omgeving is de integriteit van de data vaak nog belangrijker dan de uptime van de dienst zelf. Wanneer de onderlinge communicatie tussen nodes faalt, ontstaat het risico op een 'split-brain'-scenario. In deze situatie verliezen nodes het contact met elkaar, waardoor beide onterecht kunnen concluderen dat zij de actieve leider zijn. Dit leidt tot een kritiek conflict waarbij twee nodes gelijktijdig proberen te schrijven naar dezelfde gedeelde bronnen, wat uiteindelijk resulteert in data-corruptie \autocite{Layrs2026}. Om dit te voorkomen, steunt de cluster op de combinatie van fencing en quorum.
@@ -126,7 +126,7 @@ Binnen de implementatie van fencing kan een onderscheid worden gemaakt in de man
 Hoewel dit proces de hersteltijd tijdelijk beïnvloedt, is het de enige methode om data-integriteit in een gedistribueerd systeem onomstotelijk te waarborgen.
 
 \subsection{Het concept Quorum}
-Waar fencing de fysieke uitvoering van de isolatie verzorgt, fungeert quorum als de logische beslissingslaag die bepaalt welke groep nodes mag blijven opereren. Een RHEL-cluster maakt gebruik van de votequorum service om split-brain situaties te vermijden door middel van een stemsysteem waarbij een cluster pas over quorum beschikt wanneer meer dan de helft van de geconfigureerde nodes online is. Om de kans op datacorruptie bij falen te minimaliseren, zal Pacemaker standaard alle resources stoppen wanneer de cluster dit quorum verliest \autocite{RedHat3, Layrs2026}.
+Waar fencing de fysieke uitvoering van de isolatie verzorgt, fungeert quorum als de logische beslissingslaag die bepaalt welke groep nodes mag blijven opereren. Een RHEL-cluster maakt gebruik van de votequorum service om split-brain situaties te vermijden door middel van een stemsysteem waarbij een cluster - die van nature uit een oneven aantal nodes bestaat - pas over quorum beschikt wanneer meer dan de helft van de geconfigureerde nodes online is. Om de kans op datacorruptie bij falen te minimaliseren, zal Pacemaker standaard alle resources stoppen wanneer de cluster dit quorum verliest \autocite{RedHat3, Layrs2026}.
 
 \begin{figure}[H]
     \centering
@@ -168,7 +168,7 @@ Op het niveau van de individuele services (zoals de webserver) bepalen de Resour
 \end{itemize}
 
 \subsection{TCP-Stack en Netwerkoptimalisatie}
-Buiten de clustersoftware om speelt de configuratie van de Linux-netwerkstack een cruciale rol in het voorkomen van lange wachttijden tijdens een failover \autocite{Pracucci2018}.
+Buiten de clustersoftware om, speelt de configuratie van de Linux-netwerkstack een cruciale rol in het voorkomen van lange wachttijden op applicatieniveau \autocite{Pracucci2018}. Wanneer een failover plaatsvindt, moeten actieve clientverbindingen en applicaties snel reageren op de veranderde infrastructuur.
 
 \begin{itemize}
     \item \textbf{net.ipv4.tcp\_retries2}: Deze systeemparameter bepaalt hoe vaak de TCP-stack een pakket opnieuw verzendt voordat de verbinding wordt verbroken. In standaardconfiguraties kan dit proces tot 15 minuten duren. Het substantieel verlagen van deze waarde is noodzakelijk om te garanderen dat de applicatielaag tijdig reageert op een onbereikbare node.

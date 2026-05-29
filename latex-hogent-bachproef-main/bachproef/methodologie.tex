@@ -26,6 +26,10 @@
 %% Maak voor elke fase (behalve het literatuuronderzoek) een NIEUW HOOFDSTUK aan
 %% en geef het een gepaste titel.
 
+\textbf{Leeswijzer en Structuur} \\
+Binnen dit onderzoek is er bewust gekozen om de methodologische aanpak en de technische realisatie van de Proof of Concept (PoC) te integreren in één doorlopend hoofdstuk. In tegenstelling tot een splitsing waarin de theorie en de praktijk los van elkaar worden toegelicht, zorgt deze manier van werken voor een directe link tussen de ontwerpbeslissingen en de implementatie binnen de Azure-cloud. Dit verhoogt de leesbaarheid en voorkomt redundante verwijzingen tussen verschillende hoofdstukken.
+\medskip
+
 In dit hoofdstuk wordt de procesmatige aanpak van het onderzoek toegelicht. Het onderzoek is opgedeeld in vier logische fasen, waarbij de focus verschuift van de initiële opzet naar de kwantitatieve optimalisatie van de hersteltijd.
 
 \section{Fase 1: Opzet van de Baseline PoC}
@@ -33,7 +37,7 @@ De eerste fase van dit onderzoek is gericht op het opzetten van een stabiele en 
 \medskip
 
 \subsection{Cloud-Infrastructuur en Provisioning}
-De basis van de Proof-of-Concept (PoC) rust op een redundante Azure-architectuur. Er is gekozen voor de provisioning van twee virtuele machines (BP-Node-1 en BP-Node-2) binnen een dedicated Resource Group genaamd RG\_arno. Beide nodes draaien op Red Hat Enterprise Linux (RHEL) 9.4.
+De basis van de PoC rust op een redundante Azure-architectuur. Er is gekozen voor de provisioning van twee virtuele machines (BP-Node-1 en BP-Node-2) binnen een dedicated Resource Group genaamd RG\_arno. Beide nodes draaien op Red Hat Enterprise Linux (RHEL) 9.4.
 \medskip
 
 Cruciaal voor de bereikbaarheid en de latere failover-mechanismen is de implementatie van een Azure Internal Load Balancer (ILB) met het frontend IP-adres \texttt{172.16.0.100}. Deze ILB fungeert als het centrale toegangspunt voor client-verkeer. Om de status van de actieve node te verifiëren, zijn specifieke Health Probes geconfigureerd op poort 80. De Network Security Groups (NSG) zijn strikt gedefinieerd om enkel noodzakelijk verkeer toe te staan, waaronder poort 80 (HTTP) en de specifieke poorten voor cluster-communicatie (bijv. UDP 5404-5405 voor Corosync).
@@ -92,7 +96,7 @@ Het resultaat van deze fase is een volledig operationele, maar niet-geoptimalise
 Vanaf hier verschuift de focus van de standaardinstallatie naar de beveiliging van de cluster. Het hoofddoel hierbij is het waarborgen van de data-integriteit door het risico op mogelijke 'split-brain'-scenario's te elimineren. In deze fase wordt een robuust fencing-mechanisme geconfigureerd dat is afgestemd op de Azure-infrastructuur. 
 \medskip
 
-\subsection{Identiteitsbeheer en Azure RBAC}
+\subsection{Identiteitsbeheer en Azure-rol}
 In plaats van traditionele Service Principals is er gekozen voor een modernere aanpak met System-assigned Managed Identities. De keuze voor Managed Identities is een weloverwogen stap richting de onderzoeksvraag. Managed Identities nemen het administratieve beheer van certificaten of wachtwoorden weg, wat de complexiteit en de kans op menselijke fouten aanzienlijk verkleint \autocite{Oasis2025}. Bovendien is er gekozen voor de Azure Fence Agent in plaats van SBD (Storage Based Death) met iSCSI, omdat dit een meer cloud-geoptimaliseerde benadering is \autocite{Microsoft2026}.
 \medskip
 
@@ -103,7 +107,7 @@ Via de Azure CLI zijn deze identiteiten toegewezen aan de virtuele machines:
     az vm identity assign --name BP-Node-2 --resource-group RG_arno
 \end{verbatim}
 
-Om de fence agent de nodige rechten te geven zonder het principe van least privilege te schenden, is een Custom RBAC-rol gedefinieerd. Deze rol staat enkel acties toe zoals powerOff, start en restart op de specifieke VM's binnen de Resource Group.
+Om de fence agent de nodige rechten te geven voor het uitvoeren van het fencing-proces, is de ingebouwde Azure-rol 'Virtual Machine Contributor' toegewezen aan deze identiteiten binnen de Resource Group. Deze rol is noodzakelijk omdat de Azure Fence Agent hiermee de vereiste rechten krijgt om de specifieke acties zoals powerOff, start en restart uit te voeren op de virtuele machines wanneer een failover wordt getriggerd. 
 
 \begin{figure}[H]
     \centering
@@ -135,6 +139,12 @@ Als aanvulling op de standaardfencing is de azure-events resource agent geïmple
     sudo pcs resource clone rsc_azure-events meta allow-unhealthy-nodes=true
 \end{verbatim}
 
+\subsection{Automatische Quorum-afhandeling (two\_node)}
+De bijbehorende quorum-logica voor deze specifieke 2-node architectuur is reeds impliciet geregeld. Bij de initiële clusteropzet in Fase 1 (pcs cluster setup) detecteert het RHEL High Availability-framework automatisch de aanwezigheid van exact twee nodes.
+\medskip 
+
+Hierdoor activeert Corosync op de achtergrond de parameter two\_node: 1 in het configuratiebestand. Dit zorgt ervoor dat bij het wegvallen van één node, de overgebleven node mathematisch het quorum behoudt, mits de defecte node succesvol wordt geïsoleerd via STONITH. Dit mechanisme elimineert de noodzaak van een derde observatie-node binnen de Azure-omgeving.
+
 \subsection{Resultaat van Fase 2}
 In tegenstelling tot de eerste fase, levert deze fase een “fencing-ready” cluster op. De omgeving kan hiermee als veilig en testbaar worden beschouwd, aangezien data-integriteit nu onder alle omstandigheden gegarandeerd kan worden door de isolatie van falende nodes.
 
@@ -142,49 +152,10 @@ In tegenstelling tot de eerste fase, levert deze fase een “fencing-ready” cl
 Hier wordt onderzocht hoe de cluster presteert met de standaardinstellingen: de baseline RTO wordt hier vastgesteld. Deze data is essentieel om later de effectiviteit van de optimalisaties te kunnen bewijzen. 
 
 \subsection{Ontwikkeling van de Monitoring-tooling}
-Om de RTO-waarden nauwkeurig te kunnen meten, wordt er niet enkel afgegaan op de interne systeemlogs. Er is een extern monitoringscript ontwikkeld, rto\_monitor.sh, dat via HTTP-polling de beschikbaarheid van de webapplicatie controleert.
+Om de RTO-waarden nauwkeurig te kunnen meten, wordt er niet enkel afgegaan op de interne systeemlogs. Er is een extern monitoringscript ontwikkeld, rto\_monitor.sh, dat via HTTP-polling de beschikbaarheid van de webapplicatie controleert. De volledige broncode van dit script is opgenomen in Bijlage~\ref{app:rto_script}.
 \medskip
 
 Het script wordt uitgevoerd op de passieve node, aangezien die op dat moment geen resource-belasting heeft. Het bevraagt het frontend IP-adres van de Azure Internal Load Balancer elke 100 milliseconden. Door te meten met een interval van 100ms wordt een grote hoeveelheid data verkregen, wat noodzakelijk is wanneer er gestreefd wordt naar een RTO van slechts enkele seconden. De keuze voor HTTP polling garandeert dat de downtime gemeten wordt zoals een eindgebruiker die zou ervaren.
-
-\begin{quote}
-    \textbf{Implementatie van het monitoringscript}
-    \begin{Verbatim}
-        #!/bin/bash
-        
-        # TARGET-IP is de Azure Internal Load Balancer
-        TARGET="http://172.16.0.100"
-        LOGFILE="rto_meting_scenario1_final.csv"
-        
-        echo "Start polling van $TARGET (elke 100 milliseconden)..."
-        echo "Resultaten worden weggeschreven naar $LOGFILE"
-        echo "Timestamp,HTTP_Status" | tee $LOGFILE
-        
-        # Oneindige loop
-        while true; do
-        TIMESTAMP=$(date +"%Y-%m-%d %H:%M:%S.%3N")
-        
-        # curl met een harde time-out van 1 seconde
-        HTTP_STATUS=$(curl -o /dev/null -s -w "%{http_code}" \ 
-        --max-time 1 $TARGET 2>/dev/null)
-        
-        # als de curl faalt (netwerk down/timeout), 
-        # maken we er '000' van
-        if [ -z "$HTTP_STATUS" ]; then
-        HTTP_STATUS="000"
-        fi
-        
-        if [ "$HTTP_STATUS" == "200" ] then
-        echo "$TIMESTAMP,200_OK" | tee -a $LOGFILE
-        else
-        echo "$TIMESTAMP,FAILED_$HTTP_STATUS" | tee -a $LOGFILE
-        fi
-        
-        # wacht 100 milliseconden
-        sleep 0.1
-        done
-    \end{Verbatim}
-\end{quote}
 
 \subsection{Testscenario's en Foutsimulatie}
 Om een representatief beeld te krijgen, worden drie specifieke foutscenario's toegepast:
@@ -192,7 +163,7 @@ Om een representatief beeld te krijgen, worden drie specifieke foutscenario's to
 \begin{itemize}
     \item \textbf{Service-level failure}: De httpd-daemon wordt handmatig gestopt op de actieve node, zonder de VM uit te schakelen. Dit test hoe snel Pacemaker een resource-fout detecteert en lokaal herstelt op dezelfde node.
     \item \textbf{Netwerkisolatie (Split-brain)}: Het blokkeren van het heartbeat-verkeer tussen de nodes. Dit test de quorum-logica en het vermogen van de cluster om via fencing een node-wissel veilig af te handelen.
-    \item \textbf{Node-level failure (Harde crash)}: De actieve VM wordt via de Azure Portal abrupt uitgeschakeld. Dit simuleert een totale hardware-uitval en test de reactiesnelheid van Corosync om de overgebleven node te activeren.
+    \item \textbf{Node-level failure (Harde crash)}: De actieve VM wordt via de Linux Magic SysRq-interface abrupt uitgeschakeld. Dit simuleert een totale hardware-uitval en test de reactiesnelheid van Corosync om de overgebleven node te activeren.
 \end{itemize}
 
 \subsection{Data-analyse en Correlatie}
@@ -219,7 +190,7 @@ Na elke significante parameterwijziging worden de drie testscenario's uit de vor
 Om de downtime bij een failover te minimaliseren, is Floating IP (Direct Server Return) geactiveerd in de Azure Portal.
 \medskip
     
-Dit vereist een specifieke configuratie op OS-niveau om te voorkomen dat de netwerkstack inkomend verkeer voor het frontend-IP weigert. De volgende commando's zijn uitgevoerd op beide nodes:
+Dit vereist een specifieke configuratie op OS-niveau om te voorkomen dat de netwerkstack inkomend verkeer voor het frontend-IP weigert. De volgende commando's zijn uitgevoerd op beide nodes om Direct Server Return (DSR) te ondersteunen, waarbij het cluster-IP lokaal wordt herkend zonder dat de nodes met elkaar conflicteren op het netwerk:
 
 \begin{verbatim}
     # Toestaan van binding aan niet-lokale IP-adressen
@@ -230,15 +201,15 @@ Dit vereist een specifieke configuratie op OS-niveau om te voorkomen dat de netw
     sudo ip addr add 172.16.0.100/32 dev lo
 \end{verbatim}
 
-Naast de configuratie op OS-niveau is de Azure-omgeving zelf afgestemd om de detectie van node-uitval te versnellen. De Health Probes van de Load Balancer zijn geconfigureerd met een minimaal interval van 5 seconden en een verlaagde drempelwaarde voor foutieve pogingen (Unhealthy Threshold). Dit zorgt ervoor dat de cloud-infrastructuur sneller reageert wanneer een node niet langer bereikbaar is.
+Naast de configuratie op OS-niveau is de Azure-omgeving zelf afgestemd om de detectie van node-uitval te optimaliseren. De Health Probes van de Load Balancer zijn geconfigureerd met een minimaal interval van 5 seconden en een verlaagde drempelwaarde van 2 voor foutieve pogingen (Unhealthy Threshold). Dit zorgt ervoor dat de cloud-infrastructuur sneller reageert wanneer een node niet langer bereikbaar is.
 \medskip
 
-Tevens zijn de Network Security Groups NSG) geoptimaliseerd om enkel het noodzakelijke clusterverkeer en de specifieke Health Probe-verzoeken van de Azure Load Balancer toe te staan. Dit voorkomt dat beveiligingsinstellingen onbedoelde vertragingen of blokkades veroorzaken tijdens de synchronisatie van de clusterstatus.
+Tevens zijn de Network Security Groups geoptimaliseerd om enkel het noodzakelijke clusterverkeer en de specifieke Health Probe-verzoeken van de Azure Load Balancer toe te staan. Dit voorkomt dat beveiligingsinstellingen onbedoelde vertragingen of blokkades veroorzaken tijdens de synchronisatie van de clusterstatus.
 
 \subsection{Tuning van de Cluster-stack (Pacemaker \& Corosync)}
 De snelheid waarmee een cluster reageert op een incident begint bij de foutdetectie op node-niveau binnen Corosync \autocite{Cubepath2026}. De token-timeout, die bepaalt hoe lang de cluster wacht op een bericht voordat een node als verloren wordt beschouwd, is verlaagd naar een agressieve waarde van 500ms.
 
-Daarnaast is de monitor interval van de Apache-resource verlaagd van 60 seconden naar 2 seconden om applicatiefouten sneller te detecteren. Om onnodige migraties van resources te voorkomen bij kortstondige instabiliteit, is de resource-stickiness verhoogd naar 100.
+Daarnaast is het monitor interval van de Apache-resource verlaagd van 60 seconden naar 2 seconden om applicatiefouten sneller te detecteren. Om onnodige migraties van resources te voorkomen bij kortstondige instabiliteit, is de resource-stickiness verhoogd naar 100.
 
 \subsection{Optimalisatie van de Linux TCP-stack}
 In standaardconfiguraties kunnen TCP-timeouts tot 15 minuten duren voordat een verbinding definitief wordt afgebroken \autocite{Pracucci2018}. Dit is onacceptabel voor een HA-omgeving. De kernel-parameters zijn daarom aangepast om de netwerkstack te dwingen sneller op te geven bij onbereikbare nodes:
@@ -277,5 +248,4 @@ De onderstaande tabel vat de uitgevoerde aanpassingen samen en vormt de basis vo
 \subsection{Resultaat van Fase 4}
 De resultaten van de geoptimaliseerde tests worden vergeleken tegenover de dataset van de nulmeting. De deliverable van deze fase is een vergelijkende analyse in de vorm van tabellen die het verschil in hersteltijd tussen de standaardconfiguratie en de geoptimaliseerde configuratie visualiseren. De conclusie van het onderzoek is hierop afgestemd.
 
-%\lipsum[21-25]
 

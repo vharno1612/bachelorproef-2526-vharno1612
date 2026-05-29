@@ -1,0 +1,33 @@
+\begin{MintedVerbatim}[commandchars=\\\{\}]
+\PYG{c+ch}{\PYGZsh{}!/bin/bash}
+
+\PYG{c+c1}{\PYGZsh{} TARGET\PYGZhy{}IP is de Azure Internal Load Balancer}
+\PYG{n+nv}{TARGET}\PYG{o}{=}\PYG{l+s+s2}{\PYGZdq{}http://172.16.0.100\PYGZdq{}}
+\PYG{n+nv}{LOGFILE}\PYG{o}{=}\PYG{l+s+s2}{\PYGZdq{}rto\PYGZus{}meting\PYGZus{}scenario1\PYGZus{}final.csv\PYGZdq{}}
+
+\PYG{n+nb}{echo}\PYG{+w}{ }\PYG{l+s+s2}{\PYGZdq{}Start polling van }\PYG{n+nv}{\PYGZdl{}TARGET}\PYG{l+s+s2}{...\PYGZdq{}}
+\PYG{n+nb}{echo}\PYG{+w}{ }\PYG{l+s+s2}{\PYGZdq{}Resultaten worden weggeschreven naar }\PYG{n+nv}{\PYGZdl{}LOGFILE}\PYG{l+s+s2}{\PYGZdq{}}
+\PYG{n+nb}{echo}\PYG{+w}{ }\PYG{l+s+s2}{\PYGZdq{}Timestamp,HTTP\PYGZus{}Status\PYGZdq{}}\PYG{+w}{ }\PYG{p}{|}\PYG{+w}{ }tee\PYG{+w}{ }\PYG{n+nv}{\PYGZdl{}LOGFILE}
+
+\PYG{c+c1}{\PYGZsh{} Oneindige loop}
+\PYG{k}{while}\PYG{+w}{ }true\PYG{p}{;}\PYG{+w}{ }\PYG{k}{do}
+\PYG{n+nv}{TIMESTAMP}\PYG{o}{=}\PYG{k}{\PYGZdl{}(}date\PYG{+w}{ }+\PYG{l+s+s2}{\PYGZdq{}\PYGZpc{}Y\PYGZhy{}\PYGZpc{}m\PYGZhy{}\PYGZpc{}d \PYGZpc{}H:\PYGZpc{}M:\PYGZpc{}S.\PYGZpc{}3N\PYGZdq{}}\PYG{k}{)}
+
+\PYG{c+c1}{\PYGZsh{} curl met een harde time\PYGZhy{}out van 1 seconde}
+\PYG{n+nv}{HTTP\PYGZus{}STATUS}\PYG{o}{=}\PYG{k}{\PYGZdl{}(}curl\PYG{+w}{ }\PYGZhy{}o\PYG{+w}{ }/dev/null\PYG{+w}{ }\PYGZhy{}s\PYG{+w}{ }\PYGZhy{}w\PYG{+w}{ }\PYG{l+s+s2}{\PYGZdq{}\PYGZpc{}\PYGZob{}http\PYGZus{}code\PYGZcb{}\PYGZdq{}}\PYG{+w}{ }\PYGZhy{}\PYGZhy{}max\PYGZhy{}time\PYG{+w}{ }\PYG{l+m}{1}\PYG{+w}{ }\PYG{n+nv}{\PYGZdl{}TARGET}\PYG{+w}{ }\PYG{l+m}{2}\PYGZgt{}/dev/null\PYG{k}{)}
+
+\PYG{c+c1}{\PYGZsh{} als de curl faalt (netwerk down/timeout), maken we er \PYGZsq{}000\PYGZsq{} van}
+\PYG{k}{if}\PYG{+w}{ }\PYG{o}{[}\PYG{+w}{ }\PYGZhy{}z\PYG{+w}{ }\PYG{l+s+s2}{\PYGZdq{}}\PYG{n+nv}{\PYGZdl{}HTTP\PYGZus{}STATUS}\PYG{l+s+s2}{\PYGZdq{}}\PYG{+w}{ }\PYG{o}{]}\PYG{p}{;}\PYG{+w}{ }\PYG{k}{then}
+\PYG{n+nv}{HTTP\PYGZus{}STATUS}\PYG{o}{=}\PYG{l+s+s2}{\PYGZdq{}000\PYGZdq{}}
+\PYG{k}{fi}
+
+\PYG{k}{if}\PYG{+w}{ }\PYG{o}{[}\PYG{+w}{ }\PYG{l+s+s2}{\PYGZdq{}}\PYG{n+nv}{\PYGZdl{}HTTP\PYGZus{}STATUS}\PYG{l+s+s2}{\PYGZdq{}}\PYG{+w}{ }\PYG{o}{==}\PYG{+w}{ }\PYG{l+s+s2}{\PYGZdq{}200\PYGZdq{}}\PYG{+w}{ }\PYG{o}{]}\PYG{p}{;}\PYG{+w}{ }\PYG{k}{then}
+\PYG{n+nb}{echo}\PYG{+w}{ }\PYG{l+s+s2}{\PYGZdq{}}\PYG{n+nv}{\PYGZdl{}TIMESTAMP}\PYG{l+s+s2}{,200\PYGZus{}OK\PYGZdq{}}\PYG{+w}{ }\PYG{p}{|}\PYG{+w}{ }tee\PYG{+w}{ }\PYGZhy{}a\PYG{+w}{ }\PYG{n+nv}{\PYGZdl{}LOGFILE}
+\PYG{k}{else}
+\PYG{n+nb}{echo}\PYG{+w}{ }\PYG{l+s+s2}{\PYGZdq{}}\PYG{n+nv}{\PYGZdl{}TIMESTAMP}\PYG{l+s+s2}{,FAILED\PYGZus{}}\PYG{n+nv}{\PYGZdl{}HTTP\PYGZus{}STATUS}\PYG{l+s+s2}{\PYGZdq{}}\PYG{+w}{ }\PYG{p}{|}\PYG{+w}{ }tee\PYG{+w}{ }\PYGZhy{}a\PYG{+w}{ }\PYG{n+nv}{\PYGZdl{}LOGFILE}
+\PYG{k}{fi}
+
+\PYG{c+c1}{\PYGZsh{} wacht 100 milliseconden}
+sleep\PYG{+w}{ }\PYG{l+m}{0}.1
+\PYG{k}{done}
+\end{MintedVerbatim}

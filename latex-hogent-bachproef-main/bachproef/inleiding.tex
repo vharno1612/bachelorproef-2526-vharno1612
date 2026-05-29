@@ -14,7 +14,7 @@ Ongeplande downtime als gevolg van serveruitval leidt niet alleen tot grootschal
 Om deze risico's te beperken, is de implementatie van een High Availability (HA) cluster een effectieve methode om de beschikbaarheid beter te garanderen. HA verwijst naar het ontwerp van systemen die consistent beschikbaar blijven door de toepassing van drie kernprincipes: redundantie, veerkracht en failover. In dit onderzoek wordt specifiek gekozen voor een Active-Passive architectuur. De voordelen van dit model zijn de eenvoud in beheer en de kosteneffectiviteit voor applicaties met een gemiddeld verkeersvolume \autocite{Luca2024}.
 \medskip
 
-Voor de realisatie van de HA-cluster wordt gebruikgemaakt van open-source componenten op Red Hat Enterprise Linux (RHEL)-compatibele nodes. Corosync fungeert hierbij als de communicatielaag, terwijl Pacemaker de resource manager is. Onderzoek toont aan dat een omgeving beheerd door Pacemaker de downtime tot wel 45\% kan reduceren in vergelijking met niet-geoptimaliseerde systemen. Door de integratie van Pacemaker wordt de systeemveerkracht aanzienlijk verbeterd en blijft de verwerkingscapaciteit stabiel, zelfs tijdens zware werklasten \autocite{Mani2022}.
+Voor de realisatie van de HA-cluster wordt gebruikgemaakt van open-source componenten op twee Azure Virtual Machines die draaien op Red Hat Enterprise Linux (RHEL) 9.4 met de High-Availability add-on. Corosync fungeert hierbij als de communicatielaag, terwijl Pacemaker de resource manager is. Onderzoek toont aan dat een omgeving beheerd door Pacemaker de downtime tot wel 45\% kan reduceren in vergelijking met niet-geoptimaliseerde systemen. Door de integratie van Pacemaker wordt de systeemveerkracht aanzienlijk verbeterd en blijft de verwerkingscapaciteit stabiel, zelfs tijdens zware werklasten \autocite{Mani2022}.
 
 \section{\IfLanguageName{dutch}{Probleemstelling}{Problem Statement}}%
 \label{sec:probleemstelling}
@@ -22,7 +22,7 @@ Voor de realisatie van de HA-cluster wordt gebruikgemaakt van open-source compon
 Hoewel de genoemde tools een robuuste basis leggen, is de standaardconfiguratie vaak niet toereikend om te voldoen aan strikte eisen voor de Recovery Time Objective (RTO). De RTO definieert de maximaal acceptabele tijd waarin een applicatie na een storing weer operationeel moet zijn. Voor veel moderne diensten is een hersteltijd van enkele seconden cruciaal. De grootste uitdaging ligt in het nauwkeurig afstellen van parameters zoals timeoutwaarden, resource stickiness en fencingmechanismen zoals STONITH. Zonder een effectief fencingmechanisme ontstaat het risico op 'split-brain'-scenario's, waarbij de data-integriteit niet langer gegarandeerd kan worden.
 \medskip
 
-Het onderzoek richt zich tot IT-architecten, systeembeheerders en DevOps-engineers die verantwoordelijk zijn voor de implementatie en het beheer van Linux-gebaseerde infrastructuur en op zoek zijn naar betaalbare, open-source alternatieven voor commerciële HA-oplossingen.
+Het onderzoek richt zich tot IT-architecten, systeembeheerders en DevOps-engineers die verantwoordelijk zijn voor de implementatie en het beheer van Linux-gebaseerde infrastructuur en op zoek zijn naar robuuste, door leveranciers ondersteunde HA-oplossingen binnen een enterprise-omgeving.
 
 \section{\IfLanguageName{dutch}{Onderzoeksvraag}{Research question}}%
 \label{sec:onderzoeksvraag}
@@ -36,7 +36,7 @@ De centrale onderzoeksvraag van deze bachelorproef luidt:
 Om een onderbouwd antwoord op de centrale onderzoeksvraag te formuleren, wordt het onderzoek opgesplitst in een reeks gerichte deelvragen. In de eerste plaats wordt het probleemdomein in kaart gebracht om de theoretische en technische aspecten van de cluster-architectuur te doorgronden:
 \begin{itemize}
     \item Wat zijn de specifieke functies van Pacemaker, Corosync en STONITH (fencing) binnen de gekozen HA-architectuur, en hoe werken deze drie componenten samen om een consensus over de status van de webdienst te bereiken?
-    \item Welke Pacemaker-configuratieparameters en constraints (zoals op-start-interval, resource-stickiness en timeout waarden) beïnvloeden het meest direct de snelheid van de failover en daarmee de RTO?
+    \item Welke Pacemaker-configuratieparameters en constraints (zoals opstartinterval, resource-stickiness en timeoutwaarden) beïnvloeden het meest direct de snelheid van de failover en daarmee de RTO?
     \item Welke vereisten en risico’s zijn cruciaal bij het gebruik van een virtueel IP-adres voor de webdienst in een Active-Passive cluster, en hoe beheert Pacemaker de migratie van dit virtuele IP om zero downtime bij failover te benaderen?
 \end{itemize}
 \medskip 

@@ -86,20 +86,13 @@
     
     %---------- Slide 3: De "Waarom" (Probleemschets) ----------
     \begin{frame}
-        \frametitle{1. Probleemschets: De Kost van Downtime}
-        \begin{columns}[c]
-            \column{.65\textwidth}
+        \frametitle{1. Probleemschets: De kost van downtime}
             \begin{itemize}
-                \item \textbf{Financiële Impact:} Ongeplande downtime kost grote ondernemingen al snel meer dan \textbf{\$300.000 per uur} \parencite{ITIC2024}.
-                \item \textbf{Verborgen Kosten:} Schade aan de werknemersmoraal en acuut verlies van klantvertrouwen \parencite{Kollective2025}.
-                \item \textbf{De Cloud Gap:} Standaard enterprise-instellingen schieten tekort binnen een software-defined cloudnetwerk \parencite{Microsoft2026}).
+                \setlength{\itemsep}{0.4em}
+                \item \textbf{Financiële Impact:} Downtime kost \textbf{90\%} van de bedrijven ruim \textbf{\$300.000 per uur}; bij 41\% loopt dit op van \textbf{\$1 tot over \$5 miljoen} \parencite{ITIC2024}.
+                \item \textbf{Verborgen Kosten:} Serveruitval leidt niet alleen tot operationele verliezen, maar ook tot zware reputatieschade, waarbij \textbf{20\% tot 40\%} van de schade al ontstaat door onzekerheid over de exacte impact \parencite{Kollective2025}.
+                \item \textbf{De Cloud-Architectuur:} Fencing vereist verplichte uitgaande connectiviteit naar publieke endpoints, en Azure Scheduled Events dwingen tot het gebruik van een specifieke cloud-agent om onderbrekingen te voorkomen \parencite{Microsoft2026}.
             \end{itemize}
-            
-            \column{.35\textwidth}
-            \begin{alertblock}{RTO Baseline}
-                Bij een harde node-crash of netwerkisolatie faalt de failover standaard volledig ($\infty$ downtime).
-            \end{alertblock}
-        \end{columns}
     \end{frame}
     
     
@@ -109,7 +102,7 @@
     \begin{frame}
         \frametitle{2. De Hoofdonderzoeksvraag}
         \vspace{0.5cm}
-        \begin{alertblock}{Centraal Uitgangspunt van het Onderzoek}
+        \begin{alertblock}{Centraal uitgangspunt van het onderzoek}
             \large\centering\itshape
             "Hoe kan een betaalbare Active-Passive High Availability webomgeving, bestaande uit Pacemaker en Corosync op RHEL-compatibele nodes, geoptimaliseerd worden om de Recovery Time Objective (RTO) van de webapplicatie bij serveruitval te minimaliseren?"
         \end{alertblock}
@@ -144,14 +137,14 @@
     
     %---------- Slide 7: Cloud Architectuur ----------
     \begin{frame}
-        \frametitle{3. Stand van Zaken: Cloud Architectuur}
+        \frametitle{3. Stand van Zaken: Cloud architectuur}
         \begin{columns}[c]
             \column{.5\textwidth}
             \begin{block}{Core Framework}
                 \begin{itemize}
                     \item \textbf{Corosync:} Lidmaatschapsservice en heartbeat-monitoring via kronosnet \parencite{RedHat}.
-                    \item \textbf{Pacemaker:} Cluster Resource Manager die via XML resources verdeelt \parencite{ClusterLabs}.
-                    \item \textbf{STONITH:} Fysieke node-fencing voorkomt split-brain en data-corruptie \parencite{Luca2024}.
+                    \item \textbf{Pacemaker:} Cluster resource manager die via XML resources verdeelt \parencite{ClusterLabs}.
+                    \item \textbf{STONITH:} Fysieke node-fencing voorkomt split-brain en data-corruptie \parencite{Romancik2024}.
                 \end{itemize}
             \end{block}
             
@@ -161,7 +154,7 @@
             
             \vspace{0.15cm}
             \scriptsize 
-            \textbf{Figuur 2.2:} De architecturale gelaagdheid van de clusterstack, met Corosync als fundament voor de communicatie tussen de hardware nodes \parencite{John2017}.
+            \textbf{Figuur 1:} De architecturale gelaagdheid van de clusterstack, met Corosync als fundament voor de communicatie tussen de hardware nodes \parencite{John2017}.
         \end{columns}
     \end{frame}
     
@@ -170,7 +163,7 @@
     
     %---------- Slide 8: De 4 Fasen ----------
     \begin{frame}
-        \frametitle{4. Methodologie: Experimentele Aanpak}
+        \frametitle{4. Methodologie: Experimentele aanpak}
         \begin{columns}[c]
             \column{.45\textwidth}
             \centering
@@ -178,11 +171,11 @@
             
             \vspace{0.15cm}
             \scriptsize 
-            \textbf{Figuur 4.1:} Visuele weergave van het onderzoeksproces \parencite{Gemini2026}.
+            \textbf{Figuur 2:} Visuele weergave van het onderzoeksproces \parencite{Gemini2026}.
             
             \column{.55\textwidth}
             \begin{itemize}
-                \item \textbf{Fase 1 \& 2: PoC Setup:} VM provisioning op Azure (oXya-infra) en implementatie van \textbf{Managed Identities} voor STONITH (Stone, 2025).
+                \item \textbf{Fase 1 \& 2: PoC Setup:} VM provisioning op Azure (oXya-infra) en implementatie van Managed Identities voor STONITH.
                 \item \textbf{Fase 3: Kwantitatieve Nulmeting:} Ontwikkeling van \texttt{rto\_monitor.sh} voor HTTP-polling elke 100ms.
                 \item \textbf{Fase 4: Parameter-tuning:} Gecoördineerde tuning op cluster-, kernel- en cloud-netwerklaag.
             \end{itemize}
@@ -194,7 +187,7 @@
     
     %---------- Slide 9: Parameter Tabel ----------
     \begin{frame}
-        \frametitle{5. Gecoördineerde Parameter-Tuning}
+        \frametitle{5. Gecoördineerde parameter-tuning}
         \begin{table}
             \centering
             \resizebox{0.95\textwidth}{!}{%
@@ -208,13 +201,17 @@
                     \textbf{Pacemaker Agent} & \texttt{monitor interval} & 60s & \textbf{2s} \\
                     & \texttt{resource-stickiness} & 1 & \textbf{100} \\
                     \midrule
-                    \textbf{Linux Kernel}   & \texttt{tcp\_retries2} & 15 ($\approx$15m) & \textbf{5} (Pracucci, 2018) \\
+                    \textbf{Linux Kernel}   & \texttt{tcp\_retries2} & 15 ($\approx$15m) & \textbf{5} \\
                     \midrule
                     \textbf{Azure Netwerk}  & Floating IP (DSR) & Disabled & \textbf{Enabled} \\
                     & Health Probe Interval & 5s & \textbf{5s (Threshold 2)} \\
                     \bottomrule
                 \end{tabular}%
             }
+            
+            \vspace{0.2cm}
+            \scriptsize 
+            \textbf{Tabel 1:} Vergelijking tussen de baseline en de geoptimaliseerde parameters.
         \end{table}
     \end{frame}
     
@@ -226,7 +223,7 @@
             
             \vspace{0.15cm}
             \scriptsize 
-            \textbf{Figuur 4.1:} Uiteindelijk netwerkschema van de geoptimaliseerde Active-Passive HA-omgeving binnen de Azure Resource Group \parencite{Gemini2026}.
+            \textbf{Figuur 3:} Uiteindelijk netwerkschema van de geoptimaliseerde Active-Passive HA-omgeving binnen de Azure Resource Group \parencite{Gemini2026}.
         \end{center}
     \end{frame}
     
@@ -235,7 +232,7 @@
     
     %---------- Slide 11: De Resultaten ----------
     \begin{frame}
-        \frametitle{6. Resultaten: Kwantitatieve Vergelijking}
+        \frametitle{6. Resultaten: Kwantitatieve vergelijking}
         \begin{center}
             \begin{minipage}{0.85\textwidth}
                 \begin{table}
@@ -251,9 +248,12 @@
                             \bottomrule
                         \end{tabular}%
                     }
+                    \par\vspace{0.2cm}
+                    \scriptsize 
+                    \textbf{Tabel 2:} Vergelijking van de hersteltijden per uitvalscenario.
                 \end{table}
                 
-                \begin{alertblock}{Overtuigend Resultaat}
+                \begin{alertblock}{Overtuigend resultaat}
                     Door gecoördineerde tuning over de hele stack zakt de RTO met \textbf{meer dan 90\%}. Een abrupte node-crash herstelt sneller dan een graceful shutdown wegens het direct skippen van time-outs.
                 \end{alertblock}
             \end{minipage}
@@ -262,7 +262,7 @@
     
     %---------- Slide 12: Conclusie Matrix ----------
     \begin{frame}
-        \frametitle{6. Kritische Evaluatie \& Conclusie}
+        \frametitle{6. Kritische evaluatie \& conclusie}
         \begin{table}
             \centering
             \resizebox{0.95\textwidth}{!}{%
@@ -277,6 +277,9 @@
                     \bottomrule
                 \end{tabular}%
             }
+            \par\vspace{0.2cm}
+            \scriptsize 
+            \textbf{Tabel 3:} Synthese van de onderzochte aspecten en bijbehorende trade-offs.
         \end{table}
         \centering
         \vspace{0.1cm}

@@ -1,5 +1,5 @@
 %==============================================================================
-% Ultiem Visueel Gecorrigeerd & Horizontaal Uitgelijnd Sjabloon - Arno Verhulst
+% Poster - Arno Verhulst
 %==============================================================================
 \documentclass[a0,portrait]{hogent-poster}
 \usepackage{xcolor}
@@ -16,11 +16,11 @@
 \definecolor{accentorange}{HTML}{D35400} % Accentkleur voor de belangrijkste resultaten
 \definecolor{darkslate}{HTML}{2C3E50}    % Donkergrijs voor de samenvatting
 
-% Handige commando's voor visuele 'badges' (leuker voor het oog!)
+% Badges
 \newcommand{\badge}[1]{\tcbox[on line, sharp corners=all, arc=1mm, colback=posterbg, colframe=cardblue, boxrule=0.3mm, top=1mm, bottom=1mm, left=2mm, right=2mm]{\small\bfseries\color{cardblue}#1}}
 \newcommand{\badgeorange}[1]{\tcbox[on line, sharp corners=all, arc=1mm, colback=accentorange!10, colframe=accentorange, boxrule=0.3mm, top=1mm, bottom=1mm, left=2mm, right=2mm]{\small\bfseries\color{accentorange}#1}}
 
-% Centrale en foutloze styling voor de onderzoekskaarten via tcolorbox
+% Onderzoekskaarten via tcolorbox
 \newtcolorbox{onderzoekskaart}[2][]{%
     enhanced,
     colback=cardbg,
@@ -55,20 +55,19 @@
 \author{Arno Verhulst}
 \email{arno.verhulst@student.hogent.be}
 \supervisor{Dhr. P. Beke}
-\cosupervisor{Dhr. D. Allaert (oXya)}
+\cosupervisor{Dhr. D. Allaert}
 
-\specialisation{Systeem- en Netwerkbeheer}
+\specialisation{IT Infrastructure Engineer}
 \keywords{High Availability, Cloud Gap, Pacemaker, Corosync, RTO-Optimalisatie, Fencing}
-\projectrepo{https://github.com/arnoverhulst/bachelorproef}
+\projectrepo{https://github.com/vharno1612/bachelorproef-2526-vharno1612.git}
 
 \begin{document}
-    
-    % Kleur de volledige achtergrond van de poster
+   
     \pagecolor{posterbg}
     
     \maketitle
     
-    % Abstract / Samenvatting als brede kaart over de volledige breedte
+    % Abstract / Samenvatting
     \begin{center}
         \begin{minipage}{0.96\linewidth}
             \begin{onderzoekskaart}[SAMENVATTING]{darkslate}
@@ -84,11 +83,11 @@
         \begin{minipage}{0.96\linewidth}
             
             \noindent
-            % LINKERKOLOM (Nu met: Introductie -> Methodologie -> Parameter Tuning)
+            % LINKERKOLOM
             \begin{minipage}[t]{0.489\linewidth}
-                \vspace{0pt} % Dwingt de absolute bovenkant van de linkerkolom als uitlijnpunt
+                \vspace{0pt}
                 
-                % KAART 1: Onderzoeksvragen (Geoptimaliseerd voor ruimte en structuur)
+                % KAART 1: Onderzoeksvragen
                 \begin{onderzoekskaart}[1. Onderzoeksvragen]{cardblue}
                     \begin{tcolorbox}[colback=posterbg, colframe=cardblue, boxrule=0.5mm, arc=3mm, top=5mm, bottom=5mm, left=5mm, right=5mm, shadow={3mm}{-3mm}{0mm}{black!5}]
                         \textbf{\color{cardblue}Hoofdonderzoeksvraag:}\\
@@ -137,7 +136,7 @@
                     \end{center}
                 \end{onderzoekskaart}
                 
-                % KAART 3: Tuning (Verplaatst van rechts naar links onder de methodologie)
+                % KAART 3
                 \begin{onderzoekskaart}[3. Gecoördineerde Parameter-Tuning]{cardblue}
                     Om de hersteltijd te minimaliseren, zijn volgende parameters stapsgewijs geoptimaliseerd over drie gelaagde niveaus:
                     
@@ -178,12 +177,12 @@
                 \end{onderzoekskaart}
                 
             \end{minipage}%
-            \hfill % Duwt de kolommen strak naar de buitenranden
-            % RECHTERKOLOM (Nu met: Architectuur -> Resultaten -> Conclusie)
+            \hfill 
+            % RECHTERKOLOM 
             \begin{minipage}[t]{0.489\linewidth}
-                \vspace{0pt} % Dwingt de absolute bovenkant van de rechterkolom als exact uitlijnpunt
+                \vspace{0pt} 
                 
-                % KAART 4: De Cloud Architectuur (Verplaatst van links naar de top van de rechterkolom)
+                % KAART 4: De Cloud Architectuur 
                 \begin{onderzoekskaart}[4. Gelaagde Architectuur]{darkslate}
                     De geoptimaliseerde infrastructuur overbrugt de transitie van fysieke netwerkhardware naar software-defined networking binnen Microsoft Azure.
                     \begin{center}

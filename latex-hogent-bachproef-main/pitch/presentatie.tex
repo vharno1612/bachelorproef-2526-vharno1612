@@ -175,7 +175,8 @@
             
             \column{.55\textwidth}
             \begin{itemize}
-                \item \textbf{Fase 1 \& 2: PoC Setup:} VM provisioning op Azure (oXya-infra) en implementatie van Managed Identities voor STONITH.
+                \item \textbf{Fase 1: Baseline PoC-opzet:} Azure provisioning en implementatie van een HA-cluster.
+                \item \textbf{Fase 2: Fencing \& Quorum:} Implementatie van STONITH via Managed Identities en quorumbeheer.
                 \item \textbf{Fase 3: Kwantitatieve Nulmeting:} Ontwikkeling van \texttt{rto\_monitor.sh} voor HTTP-polling elke 100ms.
                 \item \textbf{Fase 4: Parameter-tuning:} Gecoördineerde tuning op cluster-, kernel- en cloud-netwerklaag.
             \end{itemize}
@@ -201,12 +202,12 @@
                     \textbf{Pacemaker Agent} & \texttt{monitor interval} & 60s & \textbf{2s} \\
                     & \texttt{resource-stickiness} & 1 & \textbf{100} \\
                     \midrule
-                    \textbf{Linux Kernel}   & \texttt{tcp\_retries2} & 15 ($\approx$15m) & \textbf{5} \\
+                    \textbf{Linux Kernel} & \texttt{tcp\_retries2} & 15 ($\approx$15m) & \textbf{5} \\
+                    & \texttt{tcp\_syn\_retries} & 6 & \textbf{3} \\
                     \midrule
-                    \textbf{Azure Netwerk}  & Floating IP (DSR) & Disabled & \textbf{Enabled} \\
-                    & Health Probe Interval & 5s & \textbf{5s (Threshold 2)} \\
+                    \textbf{Azure Netwerk} & Floating IP (DSR) & Disabled & \textbf{Enabled} \\
                     \bottomrule
-                \end{tabular}%
+                \end{tabular}
             }
             
             \vspace{0.2cm}
@@ -270,12 +271,12 @@
                     \toprule
                     \textbf{Onderzocht Aspect} & \textbf{Gemaakte Keuze / Resultaat} & \textbf{Impact \& Risico (Trade-off)} \\
                     \midrule
-                    \textbf{Cluster Stack Tuning} & Token gereduceerd naar 500ms & \alert{Risico op 'False Positives'} bij cloud-netwerk jitter. \\
-                    \textbf{Cloud Netwerk Integratie} & Floating IP / DSR geactiveerd & Cruciale randvoorwaarde voor Azure ILB routering. \\
-                    \textbf{Split-Brain Preventie} & Azure Power Fencing via API & Waterdichte data-integriteit zonder shared storage. \\
-                    \textbf{Beveiliging} & Gebruik van Managed Identities & Geen hardcoded credentials binnen de cluster-stack. \\
+                    \textbf{Cluster Stack Tuning} & Token gereduceerd naar 500ms & \alert{Risico op false positives} bij netwerkjitter. \\
+                    \textbf{Cloud Netwerk Integratie} & Floating IP / DSR geactiveerd & Extra netwerkconfiguratie vereist voor snelle failover. \\
+                    \textbf{Split-Brain Preventie} & Azure Power Fencing via API & Data-integriteit zonder shared storage. \\
+                    \textbf{Beveiliging} & Managed Identities voor STONITH & Geen credentialbeheer binnen de cluster-stack. \\
                     \bottomrule
-                \end{tabular}%
+                \end{tabular}
             }
             \par\vspace{0.2cm}
             \scriptsize 
